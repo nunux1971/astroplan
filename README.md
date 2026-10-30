@@ -17,6 +17,7 @@ Elle complète [AstroCheck](https://github.com/nunux1971/astrocheck), qui trie e
 - **Journal** : le temps de pose déjà gardé par cible, d'après le journal écrit par AstroCheck, face au temps conseillé, avec le nombre de nuits restantes.
 - **Matériel et lieu** : coordonnées, ciel (échelle de Bortle), turbulence, **horizon local** (hauteur des obstacles dans 16 directions), instruments emportés.
 - **Mode rouge** pour garder la vision nocturne sur le terrain.
+- **Français ou anglais** : la page suit la langue du téléphone, et le bouton FR / EN change de langue.
 
 Les poses et temps totaux sont des ordres de grandeur pour le ciel indiqué. La météo et l'aperçu du ciel demandent que la page puisse joindre `api.open-meteo.com` et `skyview.gsfc.nasa.gov` (ou `alasky.cds.unistra.fr`) ; sans connexion, tout le reste fonctionne.
 
@@ -68,3 +69,7 @@ Le code d'AstroPlan est distribué sous licence [GPL-2.0](LICENSE).
 Prévisions météo : [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Étoiles et constellations : [d3-celestial](https://github.com/ofrohn/d3-celestial) d'Olaf Frohn (licence BSD, voir `src/LICENSE-d3-celestial`). Images du ciel : [NASA SkyView](https://skyview.gsfc.nasa.gov) et [CDS, Strasbourg](https://alasky.cds.unistra.fr) (relevés DSS2 et Mellinger).
 
 Le catalogue NGC/IC et Messier provient d'[OpenNGC](https://github.com/mattiaverga/OpenNGC) de Mattia Verga, sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Les coordonnées des nébuleuses Sharpless ajoutées sont approchées.
+
+## English
+
+AstroPlan is also available in English: the page follows the language of the phone or browser, and the **FR / EN** button in the header switches it by hand. It plans an astrophotography session for a chosen evening and site: tonight's best targets, an interactive sky map, the best rig, filter, sub length and total time for each target, the best nights ahead (Moon and 16-day cloud forecast), a real-sky framing preview, a local horizon, and a progress log fed by [AstroCheck](https://github.com/nunux1971/astrocheck). It installs as an app on Android (Chrome ▸ *Install app*) and works offline once loaded.

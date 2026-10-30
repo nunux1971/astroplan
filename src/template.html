@@ -162,6 +162,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
       <div class="field"><label for="minAlt">Hauteur mini</label>
         <select id="minAlt"><option value="20">20°</option><option value="25">25°</option><option value="30" selected>30°</option><option value="40">40°</option></select></div>
       <button class="btn" id="redBtn" type="button" aria-pressed="false" title="Palette rouge pour garder la vision nocturne">Mode rouge</button>
+      <button class="btn" id="langBtn" type="button" title="Langue / Language">EN</button>
       <button class="btn primary" id="installBtn" type="button" hidden>Installer l'application</button>
     </div>
   </header>
@@ -269,6 +270,13 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
 
 <script>
 "use strict";
+// ---------------------------------------------------------------- langue
+const LANG = (() => { let l = null; try { l = localStorage.getItem("astroplan-lang"); } catch (e) {}
+  return l === "fr" || l === "en" ? l : ((navigator.language || "fr").toLowerCase().startsWith("fr") ? "fr" : "en"); })();
+const EN = LANG === "en", LOCALE = EN ? "en-GB" : "fr-FR";
+const L = (fr, en) => EN ? en : fr;
+const COLON = EN ? ": " : " : ";
+document.documentElement.lang = LANG;
 const CATALOG = /*CATALOG*/[];
 const SKY = /*SKY*/null;
 
@@ -283,38 +291,43 @@ const FILTERS = {
 };
 const CAMS = {
   asi294: { name: "ASI294MC Pro", px: 4.63, w: 4144, h: 2822, rn: 1.3, qe: 0.5, gain: "gain 120", cooled: true },
-  canon:  { name: "Canon EOS 1100D défiltré", px: 5.2, w: 4272, h: 2848, rn: 4.0, qe: 0.35, gain: "ISO 800", cooled: false },
-  dtele:  { name: "Dwarf 3 TELE", px: 2.0, w: 3840, h: 2160, rn: 1.2, qe: 0.5, gain: "votre gain habituel", cooled: false },
-  dwide:  { name: "Dwarf 3 WIDE", px: 2.9, w: 1920, h: 1080, rn: 1.2, qe: 0.5, gain: "votre gain habituel", cooled: false },
+  canon:  { name: L("Canon EOS 1100D défiltré", "Canon EOS 1100D (full-spectrum)"), px: 5.2, w: 4272, h: 2848, rn: 4.0, qe: 0.35, gain: "ISO 800", cooled: false },
+  dtele:  { name: "Dwarf 3 TELE", px: 2.0, w: 3840, h: 2160, rn: 1.2, qe: 0.5, gain: L("votre gain habituel", "your usual gain"), cooled: false },
+  dwide:  { name: "Dwarf 3 WIDE", px: 2.9, w: 1920, h: 1080, rn: 1.2, qe: 0.5, gain: L("votre gain habituel", "your usual gain"), cooled: false },
 };
 // D : diamètre (mm) ; F : focale effective (mm) ; obs : obstruction (fraction du diamètre)
 // load : charge estimée (kg), cap : charge annoncée de la monture (kg) ; maxSub : pose maxi (s)
 const RIGS = [
   { id: "n200", short: "TS 200/800", name: "TS-Optics 200/800 f/4 + Baader MPCC + ASI294MC Pro",
-    D: 200, F: 800, obs: 0.35, cam: "asi294", mount: "iOptron GEM28", eq: true, guided: "diviseur optique ZWO + ASI120 Mini",
+    D: 200, F: 800, obs: 0.35, cam: "asi294", mount: "iOptron GEM28", eq: true, guided: L("diviseur optique ZWO + ASI120 Mini", "ZWO off-axis guider + ASI120 Mini"),
     filters: ["uvir", "len", "quad"], load: 10.5, cap: 12.7, maxSub: 300 },
-  { id: "o85", short: "Omegon 85 réd.", name: "Omegon 85/510 + réducteur 0,92× + ASI294MC Pro",
-    D: 85, F: 469, obs: 0, cam: "asi294", mount: "iOptron GEM28 ou NEQ5", eq: true, guided: "TS 60/360 + ASI120 Mini",
+  { id: "o85", short: L("Omegon 85 réd.", "Omegon 85 red."), name: L("Omegon 85/510 + réducteur 0,92× + ASI294MC Pro", "Omegon 85/510 + 0.92× reducer + ASI294MC Pro"),
+    D: 85, F: 469, obs: 0, cam: "asi294", mount: L("iOptron GEM28 ou NEQ5", "iOptron GEM28 or NEQ5"), eq: true, guided: "TS 60/360 + ASI120 Mini",
     filters: ["uvir", "len", "quad"], load: 6.0, cap: 9.0, maxSub: 300 },
   { id: "a60z", short: "Askar 60F + ASI294", name: "Askar 60F (60/408) + ASI294MC Pro",
-    D: 60, F: 408, obs: 0, cam: "asi294", mount: "Star Adventurer GTi", eq: true, guided: "petite lunette guide + ASI120 Mini",
+    D: 60, F: 408, obs: 0, cam: "asi294", mount: "Star Adventurer GTi", eq: true, guided: L("petite lunette guide + ASI120 Mini", "small guide scope + ASI120 Mini"),
     filters: ["uvir", "len", "quad"], load: 4.2, cap: 5.0, maxSub: 180 },
-  { id: "a60c", short: "Askar 60F + Canon", name: "Askar 60F (60/408) + Canon EOS 1100D défiltré",
+  { id: "a60c", short: "Askar 60F + Canon", name: L("Askar 60F (60/408) + Canon EOS 1100D défiltré", "Askar 60F (60/408) + Canon EOS 1100D (full-spectrum)"),
     D: 60, F: 408, obs: 0, cam: "canon", mount: "Star Adventurer", eq: true, guided: "",
     filters: ["uvir", "len", "quad"], load: 3.4, cap: 5.0, maxSub: 60 },
-  { id: "o85c", short: "Omegon 85 + Canon", name: "Omegon 85/510 + réducteur 0,92× + Canon EOS 1100D défiltré",
+  { id: "o85c", short: "Omegon 85 + Canon", name: L("Omegon 85/510 + réducteur 0,92× + Canon EOS 1100D défiltré", "Omegon 85/510 + 0.92× reducer + Canon EOS 1100D (full-spectrum)"),
     D: 85, F: 469, obs: 0, cam: "canon", mount: "NEQ5", eq: true, guided: "TS 60/360 + ASI120 Mini",
     filters: ["uvir", "len", "quad"], load: 4.6, cap: 9.0, maxSub: 300 },
-  { id: "dtele", short: "Dwarf 3 TELE", name: "Dwarf 3, caméra TELE (35/150)",
+  { id: "dtele", short: "Dwarf 3 TELE", name: L("Dwarf 3, caméra TELE (35/150)", "Dwarf 3, TELE camera (35/150)"),
     D: 35, F: 150, obs: 0, cam: "dtele", mount: "Dwarf 3", eq: false, guided: "", dwarf: true,
     filters: ["astro", "vis", "duo"], maxSub: 60 },
-  { id: "dwide", short: "Dwarf 3 WIDE", name: "Dwarf 3, caméra WIDE (3,4/6,7)",
+  { id: "dwide", short: "Dwarf 3 WIDE", name: L("Dwarf 3, caméra WIDE (3,4/6,7)", "Dwarf 3, WIDE camera (3.4/6.7)"),
     D: 3.4, F: 6.7, obs: 0, cam: "dwide", mount: "Dwarf 3", eq: false, guided: "", dwarf: true,
     filters: ["astro", "vis", "duo"], maxSub: 30 },
 ];
 const SQM = { 1: 21.9, 2: 21.7, 3: 21.4, 4: 20.9, 5: 20.2, 6: 19.4, 7: 18.9, 8: 18.4, 9: 17.8 };
 
-const TYPES = {
+const TYPES = EN ? {
+  G: "galaxy", GPair: "galaxy pair", GTrpl: "galaxy triplet", GGroup: "galaxy group",
+  PN: "planetary nebula", HII: "HII region", EmN: "emission nebula", RfN: "reflection nebula",
+  SNR: "supernova remnant", "Cl+N": "cluster with nebula", OCl: "open cluster", GCl: "globular cluster",
+  Neb: "nebula", "*Ass": "stellar association", "**": "double star", Other: "other", DrkN: "dark nebula",
+} : {
   G: "galaxie", GPair: "paire de galaxies", GTrpl: "trio de galaxies", GGroup: "groupe de galaxies",
   PN: "nébuleuse planétaire", HII: "région HII", EmN: "nébuleuse en émission", RfN: "nébuleuse par réflexion",
   SNR: "rémanent de supernova", "Cl+N": "amas et nébuleuse", OCl: "amas ouvert", GCl: "amas globulaire",
@@ -410,7 +423,8 @@ function skyMag(moon, separation) {
 }
 
 // ---------------------------------------------------------------- horizon local
-const DIRS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"];
+const DIRS = LANG === "en" ? ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+  : ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"];
 function obstacleAt(az) {   // hauteur de l'obstacle (°) dans la direction az, interpolée
   const h = Array.isArray(S.horizon) && S.horizon.length === 16 ? S.horizon : new Array(16).fill(0);
   const x = norm360(az) / 22.5, i = Math.floor(x) % 16, f = x - Math.floor(x);
@@ -550,25 +564,25 @@ function advise(r, o, vis, nm) {
   const fill = maj / Math.min(fov.w, fov.h), fillLong = maj / fov.w;
   let frame;
   if (fillLong > 0.95) { const nx = Math.ceil(maj / (fov.w * 0.85)), ny = Math.ceil(mn / (fov.h * 0.85));
-    frame = Math.max(0.15, 0.95 / fillLong); notes.push(`L'objet déborde du champ : mosaïque de ${nx} × ${Math.max(1, ny)} panneaux, ou cadrez la partie la plus belle.`); }
-  else if (fill < 0.12) { frame = Math.max(0.05, fill / 0.12) * 0.8; notes.push("L'objet est petit dans ce champ : il faudra recadrer fortement."); }
+    frame = Math.max(0.15, 0.95 / fillLong); notes.push(L(`L'objet déborde du champ : mosaïque de ${nx} × ${Math.max(1, ny)} panneaux, ou cadrez la partie la plus belle.`, `The object overflows the field: ${nx} × ${Math.max(1, ny)} panel mosaic, or frame its best part.`)); }
+  else if (fill < 0.12) { frame = Math.max(0.05, fill / 0.12) * 0.8; notes.push(L("L'objet est petit dans ce champ : il faudra recadrer fortement.", "The object is small in this field: expect a heavy crop.")); }
   else if (fill < 0.3) frame = 0.75 + 0.25 * (fill - 0.12) / 0.18;
   else frame = 1;
   // échantillonnage
   const px = maj * 3600 / fov.scale;
   if (px < 60 && maj * 60 < 10) { frame *= 0.6; }
-  if (fov.scale < S.seeing / 3.2) notes.push(`Échantillonnage fin (${fmt(fov.scale, 2)}″/px pour ${fmt(S.seeing, 1)}″ de turbulence) : un binning 2×2 au traitement est possible.`);
+  if (fov.scale < S.seeing / 3.2) notes.push(L(`Échantillonnage fin (${fmt(fov.scale, 2)}″/px pour ${fmt(S.seeing, 1)}″ de turbulence) : un binning 2×2 au traitement est possible.`, `Fine sampling (${fmt(fov.scale, 2)}″/px for ${fmt(S.seeing, 1)}″ seeing): 2×2 binning in processing is an option.`));
   // filtre et pose
   const filt = chooseFilter(r, o, vis.sky);
   const emi = EMISSION.has(o[2]);
   const se = subExposure(r, filt, vis.sky);
-  let limit = r.maxSub, why = r.dwarf ? "limite du Dwarf" : (r.guided ? "guidage" : "suivi sans guidage");
+  let limit = r.maxSub, why = r.dwarf ? L("limite du Dwarf", "Dwarf limit") : (r.guided ? L("guidage", "guiding") : L("suivi sans guidage", "unguided tracking"));
   const rot = rotationLimit(vis, nm, r);
-  if (rot && rot.tmax < limit) { limit = rot.tmax; why = "rotation de champ"; }
+  if (rot && rot.tmax < limit) { limit = rot.tmax; why = L("rotation de champ", "field rotation"); }
   let sub = niceSub(Math.max(se.lo, Math.min(se.t, limit)));
   if (rot) {
     const trail = rot.pxPerS * sub;                              // au pire moment
-    if (trail > rot.fwhm) notes.push(`Vers ${hhmm(rot.at)}, la rotation de champ étire les étoiles des coins d'environ ${Math.round(trail)} px pendant une pose de ${sub} s : recadrez les bords, ou passez à ${niceSub(Math.max(10, rot.worst))} s autour de cette heure.`);
+    if (trail > rot.fwhm) notes.push(L(`Vers ${hhmm(rot.at)}, la rotation de champ étire les étoiles des coins d'environ ${Math.round(trail)} px pendant une pose de ${sub} s : recadrez les bords, ou passez à ${niceSub(Math.max(10, rot.worst))} s autour de cette heure.`, `Around ${hhmm(rot.at)}, field rotation stretches corner stars by about ${Math.round(trail)} px during a ${sub} s exposure: crop the edges, or switch to ${niceSub(Math.max(10, rot.worst))} s around that time.`));
   }
   // temps total
   const cls = surfaceClass(o);
@@ -583,13 +597,13 @@ function advise(r, o, vis, nm) {
   const nSubs = Math.ceil(hours * 3600 / sub);
   const tonightSubs = Math.floor(vis.usable * 3600 / (sub * 1.08));
   // Lune
-  if (!emi && vis.moonUp > 0.5 && nm.moonIllum > 0.35) { notes.push(`Lune éclairée à ${Math.round(nm.moonIllum * 100)} % pendant ${fmt(vis.moonUp, 1)} h : mauvaise nuit pour cet objet sans filtre, préférez une nuit sans Lune.`); score -= 0.25; }
-  if (emi && vis.moonUp > 0.5 && nm.moonIllum > 0.5) notes.push(`Avec la Lune à ${Math.round(nm.moonIllum * 100)} %, le filtre bi-bande sauve la soirée, mais l'OIII souffrira.`);
+  if (!emi && vis.moonUp > 0.5 && nm.moonIllum > 0.35) { notes.push(L(`Lune éclairée à ${Math.round(nm.moonIllum * 100)} % pendant ${fmt(vis.moonUp, 1)} h : mauvaise nuit pour cet objet sans filtre, préférez une nuit sans Lune.`, `Moon ${Math.round(nm.moonIllum * 100)}% lit for ${fmt(vis.moonUp, 1)} h: a poor night for this object without a filter, prefer a moonless night.`)); score -= 0.25; }
+  if (emi && vis.moonUp > 0.5 && nm.moonIllum > 0.5) notes.push(L(`Avec la Lune à ${Math.round(nm.moonIllum * 100)} %, le filtre bi-bande sauve la soirée, mais l'OIII souffrira.`, `With the Moon at ${Math.round(nm.moonIllum * 100)}%, the dual-band filter saves the night, but OIII will suffer.`));
   // monture
-  if (r.load && r.cap) { const u = r.load / r.cap; if (u > 0.9) notes.push(`Charge estimée ${fmt(r.load, 1)} kg pour ${fmt(r.cap, 1)} kg annoncés : à la limite, soignez l'équilibrage et le vent.`); }
-  if (r.eq && vis.bestT && vis.best > S.minAlt && r.mount !== "Star Adventurer") notes.push(`Retournement au méridien vers ${hhmm(vis.bestT)}.`);
-  if (r.id === "a60c" || r.id === "o85c") { if (filt === "uvir") notes.push("Canon défiltré : gardez le filtre UV/IR-Cut, sinon les étoiles gonflent."); notes.push("Canon non refroidi : faites les darks à la même température, juste après la séance."); }
-  if (r.dwarf && S.dwarfEq != 1 && vis.best > 80) notes.push("L'objet passe près du zénith : le Dwarf en alt-azimutal y suit mal. Évitez l'heure de la culmination.");
+  if (r.load && r.cap) { const u = r.load / r.cap; if (u > 0.9) notes.push(L(`Charge estimée ${fmt(r.load, 1)} kg pour ${fmt(r.cap, 1)} kg annoncés : à la limite, soignez l'équilibrage et le vent.`, `Estimated load ${fmt(r.load, 1)} kg for a rated ${fmt(r.cap, 1)} kg: at the limit, mind the balance and the wind.`)); }
+  if (r.eq && vis.bestT && vis.best > S.minAlt && r.mount !== "Star Adventurer") notes.push(L(`Retournement au méridien vers ${hhmm(vis.bestT)}.`, `Meridian flip around ${hhmm(vis.bestT)}.`));
+  if (r.id === "a60c" || r.id === "o85c") { if (filt === "uvir") notes.push(L("Canon défiltré : gardez le filtre UV/IR-Cut, sinon les étoiles gonflent.", "Full-spectrum Canon: keep the UV/IR-cut filter, or stars will bloat.")); notes.push(L("Canon non refroidi : faites les darks à la même température, juste après la séance.", "Uncooled Canon: shoot darks at the same temperature, right after the session.")); }
+  if (r.dwarf && S.dwarfEq != 1 && vis.best > 80) notes.push(L("L'objet passe près du zénith : le Dwarf en alt-azimutal y suit mal. Évitez l'heure de la culmination.", "The object passes near the zenith, where the alt-az Dwarf tracks poorly. Avoid the hour around culmination."));
   if (r.id === "dwide" && maj < 2) { frame *= 0.3; }
   // note globale
   const speed = Math.min(1, Math.pow(5 / fr, 2) * Math.min(1, r.D / 60));
@@ -622,13 +636,13 @@ async function loadJournalServer() {   // journal.json posé à côté de la pag
   return false;
 }
 function journalFor(o) {
-  const keys = new Set([o[0], o[1], o[9]].filter(Boolean).map(normName));
+  const keys = new Set([o[0], o[1], o[9], o[11]].filter(Boolean).map(normName));
   const es = JOURNAL.filter(e => keys.has(normName(e.object)));
   if (!es.length) return null;
   return { entries: es, secs: es.reduce((s, e) => s + (Number(e.exp_kept) || 0), 0), nights: new Set(es.map(e => e.night)).size,
     last: es.map(e => e.night).sort().pop() };
 }
-function catalogObject(name) { const k = normName(name); return CATALOG.find(o => [o[0], o[1], o[9]].filter(Boolean).some(x => normName(x) === k)); }
+function catalogObject(name) { const k = normName(name); return CATALOG.find(o => [o[0], o[1], o[9], o[11]].filter(Boolean).some(x => normName(x) === k)); }
 function rigOfEntry(e) {   // retrouve l'instrument d'après la caméra et la focale
   const cam = String(e.camera || "").toUpperCase(), f = Number(e.focal) || 0;
   if (cam === "TELE") return "dtele"; if (cam === "WIDE") return "dwide";
@@ -641,16 +655,18 @@ function rigOfEntry(e) {   // retrouve l'instrument d'après la caméra et la fo
 
 // ---------------------------------------------------------------- utilitaires d'affichage
 const $ = s => document.querySelector(s);
-const fmt = (x, d = 1) => x == null ? "—" : Number(x).toFixed(d).replace(".", ",");
-const hhmm = t => t == null ? "—" : new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-const dayFr = t => new Date(t).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+const fmt = (x, d = 1) => x == null ? "—" : (EN ? Number(x).toFixed(d) : Number(x).toFixed(d).replace(".", ","));
+const hhmm = t => t == null ? "—" : new Date(t).toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" });
+const dayFr = t => new Date(t).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short" });
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const size = o => o[5] ? (o[5] >= 60 ? `${fmt(o[5] / 60, 1)}°` : `${Math.round(o[5])}′`) : "—";
-const hm = h => { const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`; };
+const hm = h => { const m = Math.round(h * 60); return m >= 60 ? (EN ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`) : `${m} min`; };
+const pc = x => EN ? `${Math.round(x)}%` : `${Math.round(x)} %`;
 function raStr(ra) { const h = ra / 15, H = Math.floor(h), m = (h - H) * 60, M = Math.floor(m), s = Math.round((m - M) * 60); return `${H}h ${String(M).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`; }
 function decStr(d) { const sg = d < 0 ? "−" : "+", a = Math.abs(d), D = Math.floor(a), m = Math.round((a - D) * 60); return `${sg}${D}° ${String(m).padStart(2, "0")}′`; }
-const moonWord = nm => { const p = Math.round(nm.moonIllum * 100); return p < 3 ? "nouvelle Lune" : `${p} % ${nm.moonWaxing ? "croissante" : "décroissante"}`; };
-const label = o => o[9] && o[9] !== o[0] ? o[9] : (TYPES[o[2]] || "");
+const moonWord = nm => { const p = Math.round(nm.moonIllum * 100); return p < 3 ? L("nouvelle Lune", "new Moon") : L(`${p} % ${nm.moonWaxing ? "croissante" : "décroissante"}`, `${p}% ${nm.moonWaxing ? "waxing" : "waning"}`); };
+const objName = o => EN ? (o[11] || "") : (o[9] || "");
+const label = o => objName(o) && objName(o) !== o[0] ? objName(o) : (TYPES[o[2]] || "");
 
 // ---------------------------------------------------------------- état
 let NM = null, current = null, typeFilter = "all", rigFilter = "all";
@@ -658,31 +674,31 @@ function dateValue() { return $("#date").value; }
 
 function renderNightbar() {
   const nm = NM;
-  const moonTxt = nm.moonRise || nm.moonSet ? [nm.moonRise ? `lever ${hhmm(nm.moonRise)}` : "", nm.moonSet ? `coucher ${hhmm(nm.moonSet)}` : ""].filter(Boolean).join(", ") : (nm.moons[Math.floor(nm.moons.length / 2)].alt > 0 ? "levée toute la nuit" : "couchée toute la nuit");
+  const moonTxt = nm.moonRise || nm.moonSet ? [nm.moonRise ? `${L("lever", "rises")} ${hhmm(nm.moonRise)}` : "", nm.moonSet ? `${L("coucher", "sets")} ${hhmm(nm.moonSet)}` : ""].filter(Boolean).join(", ") : (nm.moons[Math.floor(nm.moons.length / 2)].alt > 0 ? L("levée toute la nuit", "up all night") : L("couchée toute la nuit", "down all night"));
   $("#nightbar").innerHTML = `
-    <div class="stat"><div class="k">Nuit noire</div><div class="v">${hhmm(nm.darkStart)} – ${hhmm(nm.darkEnd)}</div><div class="s">${hm(nm.darkHours)} de nuit astronomique</div></div>
-    <div class="stat"><div class="k">Soleil</div><div class="v">${hhmm(nm.sunset)} / ${hhmm(nm.sunrise)}</div><div class="s">coucher / lever</div></div>
-    <div class="stat"><div class="k">Lune</div><div class="v">${moonWord(nm)}</div><div class="s">${moonTxt}</div></div>
-    <div class="stat"><div class="k">Ciel</div><div class="v">Bortle ${S.bortle}</div><div class="s">≈ ${fmt(SQM[S.bortle], 1)} mag/″² sans Lune</div></div>
+    <div class="stat"><div class="k">${L("Nuit noire", "Astronomical night")}</div><div class="v">${hhmm(nm.darkStart)} – ${hhmm(nm.darkEnd)}</div><div class="s">${L(`${hm(nm.darkHours)} de nuit astronomique`, `${hm(nm.darkHours)} of full darkness`)}</div></div>
+    <div class="stat"><div class="k">${L("Soleil", "Sun")}</div><div class="v">${hhmm(nm.sunset)} / ${hhmm(nm.sunrise)}</div><div class="s">${L("coucher / lever", "set / rise")}</div></div>
+    <div class="stat"><div class="k">${L("Lune", "Moon")}</div><div class="v">${moonWord(nm)}</div><div class="s">${moonTxt}</div></div>
+    <div class="stat"><div class="k">${L("Ciel", "Sky")}</div><div class="v">Bortle ${S.bortle}</div><div class="s">≈ ${fmt(SQM[S.bortle], 1)} mag/″² ${L("sans Lune", "without Moon")}</div></div>
     ${wxStat(nm)}`;
 }
 
 function wxStat(nm) {
   const w = wxSpan(nm.darkStart, nm.darkEnd);
   if (!w) {
-    const msg = wxState === "loading" ? "chargement…" : wxIndex(nm.darkStart || nm.t0) < 0 && WX ? "hors des 16 jours de prévision" : "prévision indisponible ici";
-    return `<div class="stat"><div class="k">Météo</div><div class="v">—</div><div class="s">${msg}</div></div>`;
+    const msg = wxState === "loading" ? L("chargement…", "loading…") : wxIndex(nm.darkStart || nm.t0) < 0 && WX ? L("hors des 16 jours de prévision", "beyond the 16-day forecast") : L("prévision indisponible ici", "forecast unavailable here");
+    return `<div class="stat"><div class="k">${L("Météo", "Weather")}</div><div class="v">—</div><div class="s">${msg}</div></div>`;
   }
-  const dew = w.dewAt ? `buée probable dès ${hhmm(w.dewAt)}` : `pas de buée (écart ${fmt(w.minSpread, 0)} °C)`;
-  return `<div class="stat"><div class="k">Météo (nuit noire)</div><div class="v"><span class="pill ${cloudClass(w.cc)}">${Math.round(w.cc)} % de nuages</span></div>
-    <div class="s">bas ${Math.round(w.lo)} · moy. ${Math.round(w.mid)} · hauts ${Math.round(w.hi)} %<br>vent jusqu'à ${Math.round(w.gust)} km/h · ${dew}</div></div>`;
+  const dew = w.dewAt ? L(`buée probable dès ${hhmm(w.dewAt)}`, `dew likely from ${hhmm(w.dewAt)}`) : L(`pas de buée (écart ${fmt(w.minSpread, 0)} °C)`, `no dew (${fmt(w.minSpread, 0)} °C spread)`);
+  return `<div class="stat"><div class="k">${L("Météo (nuit noire)", "Weather (dark hours)")}</div><div class="v"><span class="pill ${cloudClass(w.cc)}">${L(`${Math.round(w.cc)} % de nuages`, `${Math.round(w.cc)}% cloud`)}</span></div>
+    <div class="s">${L(`bas ${Math.round(w.lo)} · moy. ${Math.round(w.mid)} · hauts ${Math.round(w.hi)} %<br>vent jusqu'à ${Math.round(w.gust)} km/h`, `low ${Math.round(w.lo)} · mid ${Math.round(w.mid)} · high ${Math.round(w.hi)}%<br>gusts up to ${Math.round(w.gust)} km/h`)} · ${dew}</div></div>`;
 }
 
 // ---- Ce soir
 function renderTypeChips() {
-  const opts = [["all", "Tout"], ["neb", "Nébuleuses"], ["gal", "Galaxies"], ["amas", "Amas"]];
+  const opts = [["all", L("Tout", "All")], ["neb", L("Nébuleuses", "Nebulae")], ["gal", L("Galaxies", "Galaxies")], ["amas", L("Amas", "Clusters")]];
   $("#typeChips").innerHTML = opts.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${typeFilter === k}">${l}</button>`).join("");
-  const rigs = [["all", "Tous mes instruments"], ...RIGS.filter(r => S.rigs.includes(r.id)).map(r => [r.id, r.short])];
+  const rigs = [["all", L("Tous mes instruments", "All my rigs")], ...RIGS.filter(r => S.rigs.includes(r.id)).map(r => [r.id, r.short])];
   if (!rigs.some(([k]) => k === rigFilter)) rigFilter = "all";
   $("#rigChips").innerHTML = rigs.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${rigFilter === k}">${esc(l)}</button>`).join("");
 }
@@ -711,12 +727,12 @@ function renderTonight() {
       <td class="num">${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)}</td>
       <td class="num">${hm(vis.usable)}</td>
       <td class="num">${Math.round(vis.best)}°</td>
-      <td>${vis.moonUp > 0.25 && nm.moonIllum > 0.1 ? `<span class="pill ${EMISSION.has(o[2]) ? "warn" : "bad"}">${Math.round(vis.moonSepMin)}° de la Lune</span>` : `<span class="pill good">sans Lune</span>`}</td>
-      <td>${w ? `<span class="pill ${cloudClass(w.cc)}">${Math.round(w.cc)} %</span>` : '<span class="muted">—</span>'}</td>
+      <td>${vis.moonUp > 0.25 && nm.moonIllum > 0.1 ? `<span class="pill ${EMISSION.has(o[2]) ? "warn" : "bad"}">${L(`${Math.round(vis.moonSepMin)}° de la Lune`, `${Math.round(vis.moonSepMin)}° from Moon`)}</span>` : `<span class="pill good">${L("sans Lune", "no Moon")}</span>`}</td>
+      <td>${w ? `<span class="pill ${cloudClass(w.cc)}">${pc(w.cc)}</span>` : '<span class="muted">—</span>'}</td>
       <td>${j ? `<span class="pill">${hm(j.secs / 3600)}</span>` : '<span class="muted">—</span>'}</td>
       <td>${esc(b.r.short)}<br><span class="muted">${esc(FILTERS[b.filt].name.split(" (")[0])} · ${b.sub} s</span></td>
-    </tr>`).join("") || `<tr><td colspan="10" class="muted">Aucune cible au-dessus de ${S.minAlt}° pendant au moins une heure de nuit noire.</td></tr>`;
-  $("#tonightNote").textContent = `${rows.length} objets du catalogue sont observables au moins une heure ce soir au-dessus de ${S.minAlt}°. Classement : cadrage dans vos instruments, durée de visibilité, Lune, et notoriété de l'objet.`;
+    </tr>`).join("") || `<tr><td colspan="10" class="muted">${L(`Aucune cible au-dessus de ${S.minAlt}° pendant au moins une heure de nuit noire.`, `No target above ${S.minAlt}° for at least one hour of darkness.`)}</td></tr>`;
+  $("#tonightNote").textContent = L(`${rows.length} objets du catalogue sont observables au moins une heure ce soir au-dessus de ${S.minAlt}°. Classement : cadrage dans vos instruments, durée de visibilité, Lune, et notoriété de l'objet.`, `${rows.length} catalogue objects are observable for at least one hour tonight above ${S.minAlt}°. Ranking: framing in your rigs, visibility, Moon, and how well known the object is.`);
 }
 
 // ---- Cible
@@ -725,7 +741,7 @@ function findObjects(q) {
   const k = n(q); if (!k) return [];
   const exact = [], part = [];
   for (const o of CATALOG) {
-    const keys = [o[0], o[1], o[9]].filter(Boolean).map(n);
+    const keys = [o[0], o[1], o[9], o[11]].filter(Boolean).map(n);
     if (keys.some(x => x === k)) exact.push(o); else if (keys.some(x => x.includes(k))) part.push(o);
   }
   return exact.concat(part).slice(0, 12);
@@ -754,13 +770,13 @@ function altChart(o, vis, nm) {
   // nuages heure par heure, en haut du graphique
   let clouds = "";
   if (WX) for (let h = Math.floor(t0 / 3.6e6) * 3.6e6; h <= t1; h += 3.6e6) { const i = wxIndex(h); if (i < 0) continue;
-    clouds += `<rect x="${X(h).toFixed(1)}" y="${T}" width="${(X(h + 3.6e6) - X(h)).toFixed(1)}" height="10" fill="var(--ink)" opacity="${(0.08 + 0.6 * WX.cc[i] / 100).toFixed(2)}"><title>${hhmm(h)} : ${WX.cc[i]} % de nuages</title></rect>`; }
+    clouds += `<rect x="${X(h).toFixed(1)}" y="${T}" width="${(X(h + 3.6e6) - X(h)).toFixed(1)}" height="10" fill="var(--ink)" opacity="${(0.08 + 0.6 * WX.cc[i] / 100).toFixed(2)}"><title>${hhmm(h)} : ${EN ? WX.cc[i] + "% cloud" : WX.cc[i] + " % de nuages"}</title></rect>`; }
   let ticks = "";
   for (let h = Math.ceil(t0 / 3.6e6) * 3.6e6; h <= t1; h += 3.6e6) { const d = new Date(h); if (d.getHours() % 2) continue;
     ticks += `<line x1="${X(h)}" x2="${X(h)}" y1="${H - B}" y2="${H - B + 4}" stroke="var(--muted)"/><text x="${X(h)}" y="${H - 8}" text-anchor="middle">${String(d.getHours()).padStart(2, "0")}h</text>`; }
   let yt = ""; for (const a of [0, 30, 60, 90]) yt += `<text x="${L - 6}" y="${Y(a) + 4}" text-anchor="end">${a}°</text><line x1="${L}" x2="${W - R}" y1="${Y(a)}" y2="${Y(a)}" stroke="var(--line)" stroke-width="0.6"/>`;
   const win = vis.wStart ? `<rect x="${X(vis.wStart)}" y="${H - B - 5}" width="${Math.max(2, X(vis.wEnd) - X(vis.wStart))}" height="5" fill="var(--accent)"/>` : "";
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hauteur de ${esc(o[0])} pendant la nuit">
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${EN ? "Altitude of " + esc(o[0]) + " through the night" : "Hauteur de " + esc(o[0]) + " pendant la nuit"}">
     ${bands}${yt}
     ${obsArea}${clouds}
     <path d="${moon}" fill="none" stroke="var(--moon)" stroke-width="1.5" stroke-dasharray="5 4"/>
@@ -771,51 +787,57 @@ function frameSvg(a, o) {
   const fov = a.fov, maj = (o[5] || 2) / 60, mn = (o[6] || o[5] || 2) / 60;
   const span = Math.max(fov.w, maj) * 1.15, W = 140, H = 100, k = W / span, HT = 116;
   const fw = fov.w * k, fh = fov.h * k;
-  return `<svg viewBox="0 0 ${W} ${HT}" role="img" aria-label="Cadrage de ${esc(o[0])} dans le champ">
+  return `<svg viewBox="0 0 ${W} ${HT}" role="img" aria-label="${L("Cadrage de", "Framing of")} ${esc(o[0])}">
     <rect x="0" y="0" width="${W}" height="${H}" fill="var(--night)" rx="4"/>
     <ellipse cx="${W / 2}" cy="${H / 2}" rx="${Math.max(1.5, maj * k / 2)}" ry="${Math.max(1.5, mn * k / 2)}" fill="var(--target)" opacity="0.45" stroke="var(--target)"/>
     <rect x="${(W - fw) / 2}" y="${(H - fh) / 2}" width="${fw}" height="${fh}" fill="none" stroke="var(--ink)" stroke-width="1.2"/>
     <text x="0" y="${HT - 3}" fill="var(--muted)" font-size="10" font-family="var(--f-mono)">${fmt(fov.w, 2)}° × ${fmt(fov.h, 2)}°</text></svg>`;
 }
 function sheet(o, vis, nm, a) {
-  const L = [];
-  L.push(`AstroPlan — ${o[0]}${o[9] ? " (" + o[9] + ")" : ""}, soirée du ${new Date(nm.t0).toLocaleDateString("fr-FR")}`);
-  L.push(`Lieu : ${S.siteName} (${fmt(S.lat, 4)}°, ${fmt(S.lon, 4)}°)`);
-  L.push(`Nuit noire : ${hhmm(nm.darkStart)} – ${hhmm(nm.darkEnd)}`);
-  L.push(`Cible au-dessus de ${S.minAlt}° : ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)}), culmine à ${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}`);
-  L.push(`Lune : ${moonWord(nm)}${vis.moonUp > 0.2 ? `, levée ${hm(vis.moonUp)} pendant la fenêtre, à ${Math.round(vis.moonSepMin)}° au plus près` : ", absente pendant la fenêtre"}`);
-  L.push(`Coordonnées (date) : RA ${raStr(vis.ra)}, DEC ${decStr(vis.dec)}`);
+  const out = [];
+  const nameTxt = objName(o) && objName(o) !== o[0] ? " (" + objName(o) + ")" : "";
+  out.push(L(`AstroPlan — ${o[0]}${nameTxt}, soirée du ${new Date(nm.t0).toLocaleDateString(LOCALE)}`, `AstroPlan — ${o[0]}${nameTxt}, evening of ${new Date(nm.t0).toLocaleDateString(LOCALE)}`));
+  out.push(`${L("Lieu", "Site")}${COLON}${S.siteName} (${fmt(S.lat, 4)}°, ${fmt(S.lon, 4)}°)`);
+  out.push(`${L("Nuit noire", "Astronomical night")}${COLON}${hhmm(nm.darkStart)} – ${hhmm(nm.darkEnd)}`);
+  out.push(L(`Cible au-dessus de ${S.minAlt}° : ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)}), culmine à ${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}`,
+             `Target above ${S.minAlt}°: ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)}), culminates at ${Math.round(vis.best)}° around ${hhmm(vis.bestT)}`));
+  out.push(`${L("Lune", "Moon")}${COLON}${moonWord(nm)}${vis.moonUp > 0.2 ? L(`, levée ${hm(vis.moonUp)} pendant la fenêtre, à ${Math.round(vis.moonSepMin)}° au plus près`, `, up ${hm(vis.moonUp)} during the window, ${Math.round(vis.moonSepMin)}° at closest`) : L(", absente pendant la fenêtre", ", absent during the window")}`);
+  out.push(`${L("Coordonnées (date)", "Coordinates (of date)")}${COLON}RA ${raStr(vis.ra)}, DEC ${decStr(vis.dec)}`);
   const w = wxSpan(vis.wStart, vis.wEnd);
-  if (w) L.push(`Météo : ${Math.round(w.cc)} % de nuages, vent jusqu'à ${Math.round(w.gust)} km/h${w.dewAt ? `, buée probable dès ${hhmm(w.dewAt)}` : ""}`);
+  if (w) out.push(L(`Météo : ${Math.round(w.cc)} % de nuages, vent jusqu'à ${Math.round(w.gust)} km/h${w.dewAt ? `, buée probable dès ${hhmm(w.dewAt)}` : ""}`,
+                    `Weather: ${Math.round(w.cc)}% cloud, gusts up to ${Math.round(w.gust)} km/h${w.dewAt ? `, dew likely from ${hhmm(w.dewAt)}` : ""}`));
   const j = journalFor(o);
-  if (j) L.push(`Déjà fait : ${hm(j.secs / 3600)} en ${j.nights} nuit(s), objectif ${hm(a.hours)}`);
-  L.push("");
-  L.push(`Matériel : ${a.r.name}`);
-  L.push(`Monture : ${a.r.mount}${a.r.guided ? ", guidage " + a.r.guided : ""}`);
-  L.push(`Filtre : ${FILTERS[a.filt].name}`);
-  L.push(`Poses : ${a.sub} s · ${a.gain}${a.cooled ? " · capteur à −10 °C" : ""}`);
-  L.push(`Objectif : ${hm(a.hours)} au total, soit ${a.nSubs} poses ; ce soir : ${a.tonightSubs} poses possibles`);
-  L.push(`Darks : ${a.sub} s, ${a.gain}${a.cooled ? ", −10 °C" : ", même température"} ; flats avec le même filtre`);
-  for (const n of a.notes) L.push("• " + n);
-  return L.join("\n");
+  if (j) out.push(L(`Déjà fait : ${hm(j.secs / 3600)} en ${j.nights} nuit(s), objectif ${hm(a.hours)}`, `Already done: ${hm(j.secs / 3600)} over ${j.nights} night(s), goal ${hm(a.hours)}`));
+  out.push("");
+  out.push(`${L("Matériel", "Rig")}${COLON}${a.r.name}`);
+  out.push(`${L("Monture", "Mount")}${COLON}${a.r.mount}${a.r.guided ? L(", guidage ", ", guided by ") + a.r.guided : ""}`);
+  out.push(`${L("Filtre", "Filter")}${COLON}${FILTERS[a.filt].name}`);
+  out.push(`${L("Poses", "Subs")}${COLON}${a.sub} s · ${a.gain}${a.cooled ? L(" · capteur à −10 °C", " · sensor at −10 °C") : ""}`);
+  out.push(L(`Objectif : ${hm(a.hours)} au total, soit ${a.nSubs} poses ; ce soir : ${a.tonightSubs} poses possibles`, `Goal: ${hm(a.hours)} in total, i.e. ${a.nSubs} subs; tonight: ${a.tonightSubs} subs possible`));
+  out.push(L(`Darks : ${a.sub} s, ${a.gain}${a.cooled ? ", −10 °C" : ", même température"} ; flats avec le même filtre`, `Darks: ${a.sub} s, ${a.gain}${a.cooled ? ", −10 °C" : ", same temperature"}; flats with the same filter`));
+  for (const n of a.notes) out.push("• " + n);
+  return out.join("\n");
 }
 function wxText(vis) {
   const w = wxSpan(vis.wStart, vis.wEnd);
-  if (!w) return '<span class="muted">pas de prévision</span>';
-  return `<span class="pill ${cloudClass(w.cc)}">${Math.round(w.cc)} % de nuages</span> pendant la fenêtre, vent jusqu'à ${Math.round(w.gust)} km/h${w.dewAt ? `, <strong>buée dès ${hhmm(w.dewAt)}</strong> : allumez les résistances chauffantes` : ""}`;
+  if (!w) return `<span class="muted">${L("pas de prévision", "no forecast")}</span>`;
+  return L(`<span class="pill ${cloudClass(w.cc)}">${Math.round(w.cc)} % de nuages</span> pendant la fenêtre, vent jusqu'à ${Math.round(w.gust)} km/h${w.dewAt ? `, <strong>buée dès ${hhmm(w.dewAt)}</strong> : allumez les résistances chauffantes` : ""}`,
+           `<span class="pill ${cloudClass(w.cc)}">${Math.round(w.cc)}% cloud</span> during the window, gusts up to ${Math.round(w.gust)} km/h${w.dewAt ? `, <strong>dew from ${hhmm(w.dewAt)}</strong>: switch on the dew heaters` : ""}`);
 }
 function journalText(o, best) {
   const j = journalFor(o);
-  if (!j) return '<span class="muted">aucune séance enregistrée</span>';
+  if (!j) return `<span class="muted">${L("aucune séance enregistrée", "no session recorded")}</span>`;
   const goal = best ? best.hours : null;
   const pct = goal ? Math.min(1, j.secs / 3600 / goal) : 0;
-  return `<div class="progress"><span>${hm(j.secs / 3600)} gardées en ${j.nights} nuit${j.nights > 1 ? "s" : ""}${goal ? ` sur ${hm(goal)} conseillées` : ""}</span>${goal ? `<div class="bar"><i style="width:${Math.round(pct * 100)}%"></i></div>` : ""}</div>`;
+  const txt = L(`${hm(j.secs / 3600)} gardées en ${j.nights} nuit${j.nights > 1 ? "s" : ""}${goal ? ` sur ${hm(goal)} conseillées` : ""}`,
+                `${hm(j.secs / 3600)} kept over ${j.nights} night${j.nights > 1 ? "s" : ""}${goal ? ` of ${hm(goal)} advised` : ""}`);
+  return `<div class="progress"><span>${txt}</span>${goal ? `<div class="bar"><i style="width:${Math.round(pct * 100)}%"></i></div>` : ""}</div>`;
 }
 // ---- aperçu sur le ciel réel (hips2fits du CDS)
 const pvState = { rig: null, angle: 0, mode: "wide" };
 // sources d'images du ciel, essayées dans l'ordre : NASA SkyView, puis le CDS et son miroir
 const HIPS_HOSTS = ["skyview", "https://alasky.cds.unistra.fr", "https://alaskybis.cds.unistra.fr"];
-const HOST_NAMES = ["NASA SkyView", "CDS de Strasbourg", "miroir du CDS"];
+const HOST_NAMES = ["NASA SkyView", L("CDS de Strasbourg", "CDS Strasbourg"), L("miroir du CDS", "CDS mirror")];
 function hipsUrl(ra, dec, fov, w, h, host = 0) {
   w = Math.round(w); h = Math.round(h);
   if (HIPS_HOSTS[host] === "skyview") {
@@ -834,12 +856,12 @@ function loadSky(box, img, makeUrl) {
     clearTimeout(timer); clearInterval(tick);
     if (host + 1 < HIPS_HOSTS.length) { host++; try_(); return; }
     img.remove();
-    msg.innerHTML = `Image du ciel indisponible pour l'instant : ni NASA SkyView ni le CDS ne répondent.<br><a href="${makeUrl(0)}" target="_blank" rel="noopener">Ouvrir l'image directement</a>`;
+    msg.innerHTML = `${L("Image du ciel indisponible pour l'instant : ni NASA SkyView ni le CDS ne répondent.", "Sky image unavailable for now: neither NASA SkyView nor the CDS is answering.")}<br><a href="${makeUrl(0)}" target="_blank" rel="noopener">${L("Ouvrir l'image directement", "Open the image directly")}</a>`;
   };
   const try_ = () => {
     t0 = Date.now();
-    msg.textContent = host ? `Pas de réponse : essai sur ${HOST_NAMES[host]}…` : "Chargement de l'image du ciel…";
-    tick = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); if (s >= 4) msg.textContent = `Image du ciel (${HOST_NAMES[host]})… ${s} s`; }, 1000);
+    msg.textContent = host ? L(`Pas de réponse : essai sur ${HOST_NAMES[host]}…`, `No answer: trying ${HOST_NAMES[host]}…`) : L("Chargement de l'image du ciel…", "Loading the sky image…");
+    tick = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); if (s >= 4) msg.textContent = `${L("Image du ciel", "Sky image")} (${HOST_NAMES[host]})… ${s} s`; }, 1000);
     timer = setTimeout(fail, 25000);
     img.onload = () => { clearTimeout(timer); clearInterval(tick); msg.remove();
       const src = box.querySelector(".src"); if (src) src.textContent = HOST_NAMES[host]; };
@@ -861,7 +883,7 @@ function drawPreview(o, rigs, onlyAngle) {
     const diag = Math.hypot(fw, fh), N = Math.min(900, Math.round(Math.hypot(W, H) * 1.05));
     let img = box.querySelector("img");
     if (!onlyAngle || !img) {
-      box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img alt="Ciel autour de ${esc(o[0])}" width="${N}" height="${N}"><span class="scale">${fmt(fw, 2)}° × ${fmt(fh, 2)}° · ${esc(a.r.short)} · <span class="src"></span></span>`;
+      box.innerHTML = `<div class="msg">${L("Chargement de l'image du ciel…", "Loading the sky image…")}</div><img alt="${L("Ciel autour de", "Sky around")} ${esc(o[0])}" width="${N}" height="${N}"><span class="scale">${fmt(fw, 2)}° × ${fmt(fh, 2)}° · ${esc(a.r.short)} · <span class="src"></span></span>`;
       img = box.querySelector("img");
       loadSky(box, img, h => hipsUrl(ra, dec, diag * 1.05, N, N, h));
     }
@@ -874,7 +896,7 @@ function drawPreview(o, rigs, onlyAngle) {
     let img = box.querySelector("img.wide");
     if (!onlyAngle || !img) {
       const Wq = Math.min(900, Math.round(W * 1.2)), Hq = Math.round(Wq * 0.66);
-      box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img class="wide" alt="Ciel autour de ${esc(o[0])}" style="width:${W}px;height:${H}px;transform:translate(-50%,-50%)"><svg viewBox="0 0 ${W} ${H}"><g id="pvRect"></g></svg><span class="scale">champ affiché ${fmt(span, 1)}° · rectangle : ${esc(a.r.short)} · <span class="src"></span></span>`;
+      box.innerHTML = `<div class="msg">${L("Chargement de l'image du ciel…", "Loading the sky image…")}</div><img class="wide" alt="${L("Ciel autour de", "Sky around")} ${esc(o[0])}" style="width:${W}px;height:${H}px;transform:translate(-50%,-50%)"><svg viewBox="0 0 ${W} ${H}"><g id="pvRect"></g></svg><span class="scale">${L("champ affiché", "field shown")} ${fmt(span, 1)}° · ${L("rectangle", "frame")}${COLON}${esc(a.r.short)} · <span class="src"></span></span>`;
       img = box.querySelector("img");
       loadSky(box, img, h => hipsUrl(ra, dec, span, Wq, Hq, h));
     }
@@ -886,53 +908,55 @@ function drawPreview(o, rigs, onlyAngle) {
 }
 function renderTarget() {
   const o = current, pane = $("#targetPane");
-  if (!o) { pane.innerHTML = `<p class="note">Cherchez une cible par son nom ou son numéro, ou choisissez-en une dans l'onglet « Ce soir ».</p>`; return; }
+  if (!o) { pane.innerHTML = `<p class="note">${L("Cherchez une cible par son nom ou son numéro, ou choisissez-en une dans l'onglet « Ce soir ».", "Search for a target by name or number, or pick one in the “Tonight” tab.")}</p>`; return; }
   const nm = NM, vis = visibility(o, nm), rigs = bestRigs(o, vis, nm);
   const head = `<h2>${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}</h2>
-    <p class="muted" style="margin:2px 0 0">${esc(label(o))}${o[9] ? " · " + esc(TYPES[o[2]] || o[2]) : ""} · ${size(o)}${o[7] != null ? " · magnitude " + fmt(o[7], 1) : ""}${o[10] ? " · coordonnées approchées" : ""}</p>`;
-  const visTxt = vis.usable > 0 ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : `jamais au-dessus de ${S.minAlt}° en nuit noire`;
+    <p class="muted" style="margin:2px 0 0">${esc(label(o))}${objName(o) ? " · " + esc(TYPES[o[2]] || o[2]) : ""} · ${size(o)}${o[7] != null ? " · magnitude " + fmt(o[7], 1) : ""}${o[10] ? L(" · coordonnées approchées", " · approximate coordinates") : ""}</p>`;
+  const visTxt = vis.usable > 0 ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : L(`jamais au-dessus de ${S.minAlt}° en nuit noire`, `never above ${S.minAlt}° in darkness`);
   const best = rigs[0];
+  const why = a => a.why;
   pane.innerHTML = `${head}
     <div class="grid2" style="margin-top:12px">
-      <div class="card chart"><h3>Hauteur pendant la nuit</h3>${altChart(o, vis, nm)}
-        <div class="legend"><span><i style="background:var(--target)"></i>${esc(o[0])}</span><span><i style="background:var(--moon)"></i>Lune</span><span><i style="background:var(--muted);opacity:.5;height:8px"></i>sous ${S.minAlt}° ou derrière un obstacle</span>${WX ? '<span><i style="background:var(--ink);opacity:.5;height:8px"></i>nuages (bandeau du haut)</span>' : ""}<span><i style="background:var(--accent);height:5px"></i>fenêtre utile</span></div></div>
-      <div class="card"><h3>Ce soir</h3>
+      <div class="card chart"><h3>${L("Hauteur pendant la nuit", "Altitude through the night")}</h3>${altChart(o, vis, nm)}
+        <div class="legend"><span><i style="background:var(--target)"></i>${esc(o[0])}</span><span><i style="background:var(--moon)"></i>${L("Lune", "Moon")}</span><span><i style="background:var(--muted);opacity:.5;height:8px"></i>${L(`sous ${S.minAlt}° ou derrière un obstacle`, `below ${S.minAlt}° or behind an obstacle`)}</span>${WX ? `<span><i style="background:var(--ink);opacity:.5;height:8px"></i>${L("nuages (bandeau du haut)", "cloud (top strip)")}</span>` : ""}<span><i style="background:var(--accent);height:5px"></i>${L("fenêtre utile", "usable window")}</span></div></div>
+      <div class="card"><h3>${L("Ce soir", "Tonight")}</h3>
         <dl class="rigdl" style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:8px 0 0">
-          <dt class="muted">Fenêtre</dt><dd class="num" style="margin:0">${visTxt}</dd>
-          <dt class="muted">Culmine</dt><dd class="num" style="margin:0">${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}</dd>
-          <dt class="muted">Lune</dt><dd style="margin:0">${moonWord(nm)}${vis.moonUp > 0.2 ? `, ${hm(vis.moonUp)} pendant la fenêtre, ${Math.round(vis.moonSepMin)}° au plus près` : ", absente de la fenêtre"}</dd>
-          <dt class="muted">Fond de ciel</dt><dd class="num" style="margin:0">≈ ${fmt(vis.sky, 1)} mag/″²</dd>
+          <dt class="muted">${L("Fenêtre", "Window")}</dt><dd class="num" style="margin:0">${visTxt}</dd>
+          <dt class="muted">${L("Culmine", "Culminates")}</dt><dd class="num" style="margin:0">${L(`${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}`, `${Math.round(vis.best)}° around ${hhmm(vis.bestT)}`)}</dd>
+          <dt class="muted">${L("Lune", "Moon")}</dt><dd style="margin:0">${moonWord(nm)}${vis.moonUp > 0.2 ? L(`, ${hm(vis.moonUp)} pendant la fenêtre, ${Math.round(vis.moonSepMin)}° au plus près`, `, ${hm(vis.moonUp)} during the window, ${Math.round(vis.moonSepMin)}° at closest`) : L(", absente de la fenêtre", ", absent from the window")}</dd>
+          <dt class="muted">${L("Fond de ciel", "Sky background")}</dt><dd class="num" style="margin:0">≈ ${fmt(vis.sky, 1)} mag/″²</dd>
           <dt class="muted">RA / DEC</dt><dd class="num" style="margin:0">${raStr(vis.ra)} · ${decStr(vis.dec)}</dd>
-          <dt class="muted">Météo</dt><dd style="margin:0">${wxText(vis)}</dd>
-          <dt class="muted">Journal</dt><dd style="margin:0">${journalText(o, best)}</dd>
+          <dt class="muted">${L("Météo", "Weather")}</dt><dd style="margin:0">${wxText(vis)}</dd>
+          <dt class="muted">${L("Journal", "Log")}</dt><dd style="margin:0">${journalText(o, best)}</dd>
         </dl>
-        <p style="margin:10px 0 0"><a href="#nuits">Voir les meilleures nuits pour ${esc(o[0])}</a></p></div>
+        <p style="margin:10px 0 0"><a href="#nuits">${L(`Voir les meilleures nuits pour ${esc(o[0])}`, `See the best nights for ${esc(o[0])}`)}</a></p></div>
     </div>
-    <div class="card" style="margin-top:16px"><h3>Aperçu dans l'instrument</h3>
+    <div class="card" style="margin-top:16px"><h3>${L("Aperçu dans l'instrument", "Preview in the rig")}</h3>
       <div class="preview" style="margin-top:10px">
         <div><div class="skybox" id="skybox"></div></div>
         <div class="pvctl">
-          <div class="field"><label for="pvRig">Instrument</label><select id="pvRig">${rigs.map((a, i) => `<option value="${a.r.id}" ${a.r.id === (pvState.rig || rigs[0]?.r.id) ? "selected" : ""}>${esc(a.r.short)}${i === 0 ? " (conseillé)" : ""}</option>`).join("")}</select></div>
-          <div class="chips" role="group" aria-label="Vue"><button class="chip" type="button" data-pv="sensor" aria-pressed="${pvState.mode === "sensor"}">Champ du capteur</button><button class="chip" type="button" data-pv="wide" aria-pressed="${pvState.mode === "wide"}">Vue large</button></div>
-          <div class="field"><label for="pvAngle">Rotation du capteur : <span id="pvAngleV">${pvState.angle}</span>°</label><input type="range" id="pvAngle" min="0" max="179" step="1" value="${pvState.angle}"></div>
-          <p class="note" style="margin:0">Image du ciel réel (relevé photographique DSS2, ou Mellinger pour les très grands champs), fournie par NASA SkyView ou, à défaut, par le CDS de Strasbourg ; nord en haut et est à gauche. Le rectangle est le champ de la caméra ; tournez-le pour trouver le meilleur cadrage, puis comparez avec votre première image pour reporter l'angle.</p>
+          <div class="field"><label for="pvRig">${L("Instrument", "Rig")}</label><select id="pvRig">${rigs.map((a, i) => `<option value="${a.r.id}" ${a.r.id === (pvState.rig || rigs[0]?.r.id) ? "selected" : ""}>${esc(a.r.short)}${i === 0 ? L(" (conseillé)", " (advised)") : ""}</option>`).join("")}</select></div>
+          <div class="chips" role="group" aria-label="${L("Vue", "View")}"><button class="chip" type="button" data-pv="sensor" aria-pressed="${pvState.mode === "sensor"}">${L("Champ du capteur", "Sensor field")}</button><button class="chip" type="button" data-pv="wide" aria-pressed="${pvState.mode === "wide"}">${L("Vue large", "Wide view")}</button></div>
+          <div class="field"><label for="pvAngle">${L("Rotation du capteur", "Sensor rotation")}${COLON}<span id="pvAngleV">${pvState.angle}</span>°</label><input type="range" id="pvAngle" min="0" max="179" step="1" value="${pvState.angle}"></div>
+          <p class="note" style="margin:0">${L("Image du ciel réel (relevé photographique DSS2, ou Mellinger pour les très grands champs), fournie par NASA SkyView ou, à défaut, par le CDS de Strasbourg ; nord en haut et est à gauche. Le rectangle est le champ de la caméra ; tournez-le pour trouver le meilleur cadrage, puis comparez avec votre première image pour reporter l'angle.",
+            "Real sky image (DSS2 photographic survey, or Mellinger for very wide fields) from NASA SkyView or, failing that, the CDS in Strasbourg; north up, east left. The rectangle is the camera field: rotate it to find the best framing, then compare with your first frame to carry the angle over.")}</p>
         </div>
       </div></div>
-    <h2 style="margin-top:22px">Avec quel instrument ?</h2>
+    <h2 style="margin-top:22px">${L("Avec quel instrument ?", "Which rig?")}</h2>
     <div class="stack" style="margin-top:10px">${rigs.map((a, i) => `
       <article class="rig ${i === 0 ? "best" : ""}">
         <div class="frame">${frameSvg(a, o)}</div>
-        <div><h3>${esc(a.r.name)} ${i === 0 ? '<span class="badge">conseillé</span>' : ""}</h3>
+        <div><h3>${esc(a.r.name)} ${i === 0 ? `<span class="badge">${L("conseillé", "advised")}</span>` : ""}</h3>
           <dl>
-            <dt>Champ</dt><dd class="num">${fmt(a.fov.w, 2)}° × ${fmt(a.fov.h, 2)}° · ${fmt(a.fov.scale, 2)}″/px</dd>
-            <dt>Filtre</dt><dd>${esc(FILTERS[a.filt].name)}</dd>
-            <dt>Poses</dt><dd><span class="num">${a.sub} s</span> · ${esc(a.gain)} <span class="muted">(limite : ${a.why === "rotation de champ" ? "rotation de champ" : a.why})</span></dd>
-            <dt>Temps total</dt><dd><span class="num">${hm(a.hours)}</span>, soit ${a.nSubs} poses${vis.usable > 0 ? ` ; ce soir : ${a.tonightSubs}` : ""}</dd>
-            <dt>Monture</dt><dd>${esc(a.r.mount)}${a.r.guided ? ", guidage " + esc(a.r.guided) : ""}</dd>
+            <dt>${L("Champ", "Field")}</dt><dd class="num">${fmt(a.fov.w, 2)}° × ${fmt(a.fov.h, 2)}° · ${fmt(a.fov.scale, 2)}″/px</dd>
+            <dt>${L("Filtre", "Filter")}</dt><dd>${esc(FILTERS[a.filt].name)}</dd>
+            <dt>${L("Poses", "Subs")}</dt><dd><span class="num">${a.sub} s</span> · ${esc(a.gain)} <span class="muted">(${L("limite", "limit")}${COLON}${esc(why(a))})</span></dd>
+            <dt>${L("Temps total", "Total time")}</dt><dd><span class="num">${hm(a.hours)}</span>, ${L(`soit ${a.nSubs} poses`, `i.e. ${a.nSubs} subs`)}${vis.usable > 0 ? L(` ; ce soir : ${a.tonightSubs}`, `; tonight: ${a.tonightSubs}`) : ""}</dd>
+            <dt>${L("Monture", "Mount")}</dt><dd>${esc(a.r.mount)}${a.r.guided ? L(", guidage ", ", guided by ") + esc(a.r.guided) : ""}</dd>
           </dl>
           ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
-          ${i === 0 ? `<details style="margin-top:10px"><summary>Fiche de soirée</summary><pre class="sheet" id="sheetTxt">${esc(sheet(o, vis, nm, a))}</pre><button class="btn" type="button" id="copySheet">Copier la fiche</button> <span class="muted" id="copyMsg"></span></details>` : ""}
-        </div></article>`).join("") || '<p class="note">Aucun instrument coché dans « Matériel et lieu ».</p>'}</div>`;
+          ${i === 0 ? `<details style="margin-top:10px"><summary>${L("Fiche de soirée", "Session sheet")}</summary><pre class="sheet" id="sheetTxt">${esc(sheet(o, vis, nm, a))}</pre><button class="btn" type="button" id="copySheet">${L("Copier la fiche", "Copy the sheet")}</button> <span class="muted" id="copyMsg"></span></details>` : ""}
+        </div></article>`).join("") || `<p class="note">${L("Aucun instrument coché dans « Matériel et lieu ».", "No rig ticked in “Gear & site”.")}</p>`}</div>`;
   drawPreview(o, rigs);
   $("#pvRig").addEventListener("change", e => { pvState.rig = e.target.value; drawPreview(o, rigs); });
   $("#pvAngle").addEventListener("input", e => { pvState.angle = Number(e.target.value); $("#pvAngleV").textContent = pvState.angle; drawPreview(o, rigs, true); });
@@ -941,16 +965,16 @@ function renderTarget() {
   const cb = $("#copySheet");
   if (cb) cb.addEventListener("click", async () => {
     const txt = $("#sheetTxt").textContent;
-    try { await navigator.clipboard.writeText(txt); $("#copyMsg").textContent = "Fiche copiée"; }
-    catch (e) { const r = document.createRange(); r.selectNodeContents($("#sheetTxt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#copyMsg").textContent = "Texte sélectionné : Ctrl+C pour copier"; }
+    try { await navigator.clipboard.writeText(txt); $("#copyMsg").textContent = L("Fiche copiée", "Sheet copied"); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($("#sheetTxt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#copyMsg").textContent = L("Texte sélectionné : Ctrl+C pour copier", "Text selected: press Ctrl+C to copy"); }
   });
 }
 
 // ---- Meilleures nuits
 function renderNights() {
   const o = current, pane = $("#nightsPane");
-  if (!o) { $("#nightsTitle").textContent = "Meilleures nuits"; pane.innerHTML = `<p class="note">Choisissez d'abord une cible (onglet « Cible » ou « Ce soir »).</p>`; return; }
-  $("#nightsTitle").textContent = `Meilleures nuits pour ${o[0]}`;
+  if (!o) { $("#nightsTitle").textContent = L("Meilleures nuits", "Best nights"); pane.innerHTML = `<p class="note">${L("Choisissez d'abord une cible (onglet « Cible » ou « Ce soir »).", "Pick a target first (“Target” or “Tonight” tab).")}</p>`; return; }
+  $("#nightsTitle").textContent = L(`Meilleures nuits pour ${o[0]}`, `Best nights for ${o[0]}`);
   const n = Number($("#nightsSpan").value), start = dateValue(), emi = EMISSION.has(o[2]);
   const [y, m, d] = start.split("-").map(Number), rows = [];
   for (let i = 0; i < n; i++) {
@@ -963,13 +987,13 @@ function renderNights() {
     rows.push({ ds, t: nm.t0, vis, nm, quality, moonHit, w });
   }
   const mx = Math.max(0.01, ...rows.map(r => r.quality));
-  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Soirée</th><th class="num">Fenêtre utile</th><th class="num">Durée</th><th>Lune</th><th>Nuages</th><th class="num">Fond</th><th>Qualité</th></tr></thead><tbody>
+  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>${L("Soirée", "Evening")}</th><th class="num">${L("Fenêtre utile", "Usable window")}</th><th class="num">${L("Durée", "Duration")}</th><th>${L("Lune", "Moon")}</th><th>${L("Nuages", "Cloud")}</th><th class="num">${L("Fond", "Sky")}</th><th>${L("Qualité", "Quality")}</th></tr></thead><tbody>
     ${rows.map(r => `<tr class="click" data-date="${r.ds}" tabindex="0"><td>${dayFr(r.t)}</td><td class="num">${r.vis.usable ? `${hhmm(r.vis.wStart)} – ${hhmm(r.vis.wEnd)}` : "—"}</td><td class="num">${r.vis.usable ? hm(r.vis.usable) : "—"}</td>
-      <td>${Math.round(r.nm.moonIllum * 100)} %${r.vis.moonUp > 0.2 ? `, levée ${hm(r.vis.moonUp)}` : ", absente"}</td>
-      <td>${r.w ? `<span class="pill ${cloudClass(r.w.cc)}">${Math.round(r.w.cc)} %</span>${r.w.dewAt ? " · buée" : ""}` : '<span class="muted">—</span>'}</td><td class="num">${fmt(r.vis.sky, 1)}</td>
-      <td><div class="bar" title="${fmt(r.quality, 1)} h utiles équivalentes"><i style="width:${Math.round(100 * r.quality / mx)}%"></i></div></td></tr>`).join("")}
+      <td>${pc(r.nm.moonIllum * 100)}${r.vis.moonUp > 0.2 ? L(`, levée ${hm(r.vis.moonUp)}`, `, up ${hm(r.vis.moonUp)}`) : L(", absente", ", absent")}</td>
+      <td>${r.w ? `<span class="pill ${cloudClass(r.w.cc)}">${pc(r.w.cc)}</span>${r.w.dewAt ? L(" · buée", " · dew") : ""}` : '<span class="muted">—</span>'}</td><td class="num">${fmt(r.vis.sky, 1)}</td>
+      <td><div class="bar" title="${fmt(r.quality, 1)} ${L("h utiles équivalentes", "equivalent usable h")}"><i style="width:${Math.round(100 * r.quality / mx)}%"></i></div></td></tr>`).join("")}
     </tbody></table></div>
-    <p class="note">Qualité : heures de nuit noire au-dessus de ${S.minAlt}°, réduites par la Lune ${emi ? "(modérément : cible en émission, filtre bi-bande)" : "(fortement : cible à photographier sans filtre)"}. ${WX ? "Les nuages prévus (Open-Meteo, 16 jours) réduisent la note ; au-delà, seule la Lune compte." : "Prévision météo indisponible ici : consultez"} <a href="https://clearoutside.com/forecast/${Number(S.lat).toFixed(2)}/${Number(S.lon).toFixed(2)}" target="_blank" rel="noopener">Clear Outside</a>. Cliquez sur une soirée pour l'ouvrir.</p>`;
+    <p class="note">${L(`Qualité : heures de nuit noire au-dessus de ${S.minAlt}°, réduites par la Lune ${emi ? "(modérément : cible en émission, filtre bi-bande)" : "(fortement : cible à photographier sans filtre)"}.`, `Quality: dark hours above ${S.minAlt}°, reduced by the Moon ${emi ? "(moderately: emission target, dual-band filter)" : "(strongly: target to shoot without a filter)"}.`)} ${WX ? L("Les nuages prévus (Open-Meteo, 16 jours) réduisent la note ; au-delà, seule la Lune compte.", "Forecast cloud (Open-Meteo, 16 days) lowers the score; beyond that, only the Moon counts.") : L("Prévision météo indisponible ici : consultez", "Weather forecast unavailable here: see")} <a href="https://clearoutside.com/forecast/${Number(S.lat).toFixed(2)}/${Number(S.lon).toFixed(2)}" target="_blank" rel="noopener">Clear Outside</a>. ${L("Cliquez sur une soirée pour l'ouvrir.", "Click an evening to open it.")}</p>`;
 }
 
 // ---- Carte du ciel
@@ -990,7 +1014,7 @@ function bestTonight() {   // les 40 meilleures cibles, comme l'onglet « Ce soi
   MAP.best = new Set(rows.slice(0, 40).map(r => r[0])); MAP.bestKey = key; return MAP.best;
 }
 function renderMapChips() {
-  const opts = [["best", "Meilleures cibles du soir"], ["all", "Tout le catalogue"], ["neb", "Nébuleuses"], ["gal", "Galaxies"], ["amas", "Amas"]];
+  const opts = [["best", L("Meilleures cibles du soir", "Tonight's best targets")], ["all", L("Tout le catalogue", "Whole catalogue")], ["neb", L("Nébuleuses", "Nebulae")], ["gal", L("Galaxies", "Galaxies")], ["amas", L("Amas", "Clusters")]];
   $("#mapChips").innerHTML = opts.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${MAP.filter === k}">${l}</button>`).join("");
 }
 function renderMap() {
@@ -1007,7 +1031,7 @@ function drawMap() {
   cv.width = Wc * dpr; cv.height = size * dpr; cv.style.height = size + "px";
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const t = MAP.t, jd = jdOf(t), sun = sunPos(jd), sunAlt = altaz(sun.ra, sun.dec, jd).alt;
-  $("#mapTimeLabel").textContent = `${hhmm(t)}${sunAlt > -18 ? (sunAlt > -6 ? " · jour/crépuscule" : " · crépuscule") : ""}`;
+  $("#mapTimeLabel").textContent = `${hhmm(t)}${sunAlt > -18 ? (sunAlt > -6 ? L(" · jour/crépuscule", " · day/twilight") : L(" · crépuscule", " · twilight")) : ""}`;
   const R0 = size / 2 - 22, cx0 = Wc / 2, cy0 = size / 2;
   const R = R0 * MAP.zoom, cx = cx0 + MAP.ox, cy = cy0 + MAP.oy;
   const proj = (alt, az) => { const r = (90 - alt) / 90 * R, a = az * D2R; return [cx - r * Math.sin(a), cy - r * Math.cos(a)]; };
@@ -1037,7 +1061,7 @@ function drawMap() {
   // noms
   g.font = `11px ${css("--f-body")}`; g.textAlign = "center";
   g.fillStyle = red ? "#a8261c" : "rgba(150,170,215,.75)";
-  for (const [ra, dec, n] of SKY.cons) { const p = P(ra, dec); if (p && p[2] > 8) g.fillText(n, p[0], p[1]); }
+  for (const [ra, dec, nfr, nen] of SKY.cons) { const p = P(ra, dec); if (p && p[2] > 8) g.fillText(EN ? nen : nfr, p[0], p[1]); }
   g.fillStyle = red ? "#d0473a" : "rgba(235,235,245,.8)"; g.textAlign = "left";
   for (const [ra, dec, n] of SKY.names) { const p = P(ra, dec); if (p && p[2] > 3) g.fillText(n, p[0] + 5, p[1] - 4); }
   // Lune
@@ -1047,7 +1071,7 @@ function drawMap() {
     g.fillStyle = red ? "#ff6a55" : "#f2f0e6"; g.beginPath();
     const k = 1 - 2 * mo.illum, side = mo.waxing ? 1 : -1;   // partie éclairée (côté approximatif)
     g.arc(x, y, r, -Math.PI / 2, Math.PI / 2, side < 0); g.ellipse(x, y, Math.abs(k) * r, r, 0, Math.PI / 2, -Math.PI / 2, (k > 0) === (side < 0)); g.fill();
-    g.fillStyle = muted; g.textAlign = "left"; g.fillText(`Lune ${Math.round(mo.illum * 100)} %`, x + 12, y + 4); }
+    g.fillStyle = muted; g.textAlign = "left"; g.fillText(`${L("Lune", "Moon")} ${pc(mo.illum * 100)}`, x + 12, y + 4); }
   // cibles
   const best = bestTonight(), dark = sunAlt <= -18;
   MAP.hits = [];
@@ -1079,7 +1103,7 @@ function drawMap() {
   // bord et points cardinaux
   g.strokeStyle = red ? "#5a120c" : line; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.stroke();
   g.fillStyle = ink; g.font = `600 13px ${css("--f-body")}`; g.textAlign = "center";
-  for (const [n, az] of [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SO", 225], ["O", 270], ["NO", 315]]) {
+  for (const [n, az] of (EN ? [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SW", 225], ["W", 270], ["NW", 315]] : [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SO", 225], ["O", 270], ["NO", 315]])) {
     const r = R + 12, a = az * D2R, x = cx - r * Math.sin(a), y = cy - r * Math.cos(a) + 4;
     if (x > 6 && x < Wc - 6 && y > 8 && y < size - 2) g.fillText(n, x, y); }
 }
@@ -1090,9 +1114,9 @@ function mapPick(x, y) {
   if (!best) { pop.hidden = true; return; }
   const o = best.o, vis = visibility(o, NM);
   pop.innerHTML = `<div class="obj">${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(label(o))}</small></div>
-    <div class="num" style="margin-top:4px">hauteur ${Math.round(best.alt)}° · azimut ${Math.round(best.az)}°</div>
-    <div class="muted" style="font-size:13px">${vis.usable ? `fenêtre ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : "pas de fenêtre utile ce soir"}</div>
-    <button class="btn primary" type="button" data-open="${esc(o[0])}">Ouvrir la fiche</button>`;
+    <div class="num" style="margin-top:4px">${L("hauteur", "altitude")} ${Math.round(best.alt)}° · azimut ${Math.round(best.az)}°</div>
+    <div class="muted" style="font-size:13px">${vis.usable ? `${L("fenêtre", "window")} ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : L("pas de fenêtre utile ce soir", "no usable window tonight")}</div>
+    <button class="btn primary" type="button" data-open="${esc(o[0])}">${L("Ouvrir la fiche", "Open the target")}</button>`;
   const wrap = $("#mapWrap"), w = wrap.clientWidth;
   pop.style.left = Math.min(Math.max(8, x + 12), w - 270) + "px"; pop.style.top = Math.max(8, y - 20) + "px"; pop.hidden = false;
 }
@@ -1124,7 +1148,7 @@ function mapPick(x, y) {
 // ---- Journal
 function renderJournal() {
   const pane = $("#journalPane");
-  if (!JOURNAL.length) { pane.innerHTML = `<p class="note">Aucune séance enregistrée pour l'instant.</p>`; return; }
+  if (!JOURNAL.length) { pane.innerHTML = `<p class="note">${L("Aucune séance enregistrée pour l'instant.", "No session recorded yet.")}</p>`; return; }
   const by = new Map();
   for (const e of JOURNAL) { const k = normName(e.object); if (!by.has(k)) by.set(k, []); by.get(k).push(e); }
   const rows = [...by.values()].map(es => {
@@ -1142,24 +1166,24 @@ function renderJournal() {
     }
     return { o: null, es, secs, nights, last, goal, rigName, left: null, usable: 0 };
   }).sort((a, b) => (b.last || "").localeCompare(a.last || ""));
-  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Cible</th><th>Séries</th><th class="num">Gardé</th><th>Progression</th><th>Reste</th><th class="num">Dernière nuit</th></tr></thead><tbody>
+  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>${L("Cible", "Target")}</th><th>${L("Séries", "Series")}</th><th class="num">${L("Gardé", "Kept")}</th><th>${L("Progression", "Progress")}</th><th>${L("Reste", "Remaining")}</th><th class="num">${L("Dernière nuit", "Last night")}</th></tr></thead><tbody>
     ${rows.map(r => { const name = r.o ? r.o[0] : r.es[0].object, pct = r.goal ? Math.min(1, r.secs / 3600 / r.goal) : 0;
       const series = [...new Set(r.es.map(e => [e.camera, e.filter, e.exptime ? fmt(e.exptime, 0) + " s" : ""].filter(Boolean).join(" · ")))].join("<br>");
-      const rest = r.left == null ? "—" : r.left <= 0.05 ? '<span class="pill good">objectif atteint</span>'
-        : `${hm(r.left)}${r.usable > 0.5 ? ` · ≈ ${Math.ceil(r.left / r.usable)} nuit(s) comme ce soir` : ""}`;
-      return `<tr ${r.o ? `class="click" data-id="${esc(r.o[0])}" tabindex="0"` : ""}><td><div class="obj">${esc(name)}<small>${esc(r.o ? label(r.o) : "hors catalogue")}</small></div></td>
-        <td class="muted" style="font-size:13px">${series}</td><td class="num">${hm(r.secs / 3600)}<br><span class="muted">${r.nights} nuit${r.nights > 1 ? "s" : ""}</span></td>
-        <td>${r.goal ? `<div class="progress"><div class="bar"><i style="width:${Math.round(pct * 100)}%"></i></div><span class="muted" style="font-size:12px">objectif ${hm(r.goal)}${r.rigName ? " · " + esc(r.rigName) : ""}</span></div>` : "—"}</td>
-        <td>${rest}</td><td class="num">${r.last ? new Date(r.last + "T12:00").toLocaleDateString("fr-FR") : "—"}</td></tr>`; }).join("")}
+      const rest = r.left == null ? "—" : r.left <= 0.05 ? `<span class="pill good">${L("objectif atteint", "goal reached")}</span>`
+        : `${hm(r.left)}${r.usable > 0.5 ? L(` · ≈ ${Math.ceil(r.left / r.usable)} nuit(s) comme ce soir`, ` · ≈ ${Math.ceil(r.left / r.usable)} night(s) like tonight`) : ""}`;
+      return `<tr ${r.o ? `class="click" data-id="${esc(r.o[0])}" tabindex="0"` : ""}><td><div class="obj">${esc(name)}<small>${esc(r.o ? label(r.o) : L("hors catalogue", "not in catalogue"))}</small></div></td>
+        <td class="muted" style="font-size:13px">${series}</td><td class="num">${hm(r.secs / 3600)}<br><span class="muted">${r.nights} ${L("nuit", "night")}${r.nights > 1 ? "s" : ""}</span></td>
+        <td>${r.goal ? `<div class="progress"><div class="bar"><i style="width:${Math.round(pct * 100)}%"></i></div><span class="muted" style="font-size:12px">${L("objectif", "goal")} ${hm(r.goal)}${r.rigName ? " · " + esc(r.rigName) : ""}</span></div>` : "—"}</td>
+        <td>${rest}</td><td class="num">${r.last ? new Date(r.last + "T12:00").toLocaleDateString(LOCALE) : "—"}</td></tr>`; }).join("")}
   </tbody></table></div>`;
 }
 async function importJournalFile(file) {
   try { const j = JSON.parse(await file.text()); const n = mergeJournal(journalEntries(j));
-    renderJournal(); flashNote(`${n} séance(s) ajoutée(s) au journal`); }
-  catch (e) { flashNote("Ce fichier n'est pas un journal AstroCheck lisible."); }
+    renderJournal(); flashNote(L(`${n} séance(s) ajoutée(s) au journal`, `${n} session(s) added to the log`)); }
+  catch (e) { flashNote(L("Ce fichier n'est pas un journal AstroCheck lisible.", "This file is not a readable AstroCheck log.")); }
 }
-function flashNote(t) { const m = $("#savedMsg"); m.textContent = t; m.hidden = false; clearTimeout(m._t); m._t = setTimeout(() => { m.hidden = true; m.textContent = "Réglages enregistrés"; }, 3000);
-  const d = $("#journalDrop"); d.textContent = t; clearTimeout(d._t); d._t = setTimeout(() => d.innerHTML = 'Déposez ici le fichier <span class="mono">journal.json</span> écrit par AstroCheck', 3000); }
+function flashNote(t) { const m = $("#savedMsg"); m.textContent = t; m.hidden = false; clearTimeout(m._t); m._t = setTimeout(() => { m.hidden = true; m.textContent = L("Réglages enregistrés", "Settings saved"); }, 3000);
+  const d = $("#journalDrop"); d.textContent = t; clearTimeout(d._t); d._t = setTimeout(() => d.innerHTML = L('Déposez ici le fichier <span class="mono">journal.json</span> écrit par AstroCheck', 'Drop the <span class="mono">journal.json</span> file written by AstroCheck here'), 3000); }
 
 // ---- Matériel
 function renderHorizon() {
@@ -1171,20 +1195,20 @@ function renderHorizon() {
   const C = 110, Rr = 95, pt = (az, alt) => { const r = Rr * (1 - alt / 90), a = az * D2R; return [C + r * Math.sin(a), C - r * Math.cos(a)]; };
   let d = ""; for (let az = 0; az <= 360; az += 5) { const [x, y] = pt(az, Math.max(S.minAlt, obstacleAt(az))); d += `${az ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`; }
   const ring = a => `<circle cx="${C}" cy="${C}" r="${(Rr * (1 - a / 90)).toFixed(1)}" fill="none" stroke="var(--line)"/>`;
-  $("#hzPolar").innerHTML = `<svg viewBox="0 0 220 220" role="img" aria-label="Horizon local vu du dessus">
+  $("#hzPolar").innerHTML = `<svg viewBox="0 0 220 220" role="img" aria-label="${L("Horizon local vu du dessus", "Local horizon seen from above")}">
     <circle cx="${C}" cy="${C}" r="${Rr}" fill="var(--muted)" opacity="0.18"/>
     <path d="${d}Z" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/>${ring(30)}${ring(60)}
-    ${[["N", 0], ["E", 90], ["S", 180], ["O", 270]].map(([n, az]) => { const [x, y] = pt(az, -9); return `<text x="${x}" y="${y + 3}" text-anchor="middle">${n}</text>`; }).join("")}
+    ${[["N", 0], ["E", 90], ["S", 180], [L("O", "W"), 270]].map(([n, az]) => { const [x, y] = pt(az, -9); return `<text x="${x}" y="${y + 3}" text-anchor="middle">${n}</text>`; }).join("")}
     <text x="${C + 3}" y="${C - Rr * (1 - 30 / 90) + 11}">30°</text><text x="${C + 3}" y="${C - Rr * (1 - 60 / 90) + 11}">60°</text></svg>`;
 }
 function renderGear() {
   renderHorizon();
   $("#lat").value = S.lat; $("#lon").value = S.lon; $("#siteName").value = S.siteName;
-  $("#bortle").innerHTML = Object.keys(SQM).map(b => `<option value="${b}" ${Number(b) === Number(S.bortle) ? "selected" : ""}>${b} — ${["", "excellent", "très noir", "rural", "rural/périurbain", "périurbain", "banlieue claire", "banlieue/ville", "ville", "centre-ville"][b]} (${fmt(SQM[b], 1)})</option>`).join("");
+  $("#bortle").innerHTML = Object.keys(SQM).map(b => `<option value="${b}" ${Number(b) === Number(S.bortle) ? "selected" : ""}>${b} — ${(EN ? ["", "excellent", "truly dark", "rural", "rural/suburban", "suburban", "bright suburban", "suburban/urban", "city", "inner city"] : ["", "excellent", "très noir", "rural", "rural/périurbain", "périurbain", "banlieue claire", "banlieue/ville", "ville", "centre-ville"])[b]} (${fmt(SQM[b], 1)})</option>`).join("");
   $("#seeing").value = String(S.seeing); $("#dwarfEq").value = String(S.dwarfEq);
   $("#gearList").innerHTML = RIGS.map(r => { const f = rigFov(r), c = CAMS[r.cam];
     return `<label class="rigrow" for="rig-${r.id}"><input type="checkbox" id="rig-${r.id}" data-rig="${r.id}" ${S.rigs.includes(r.id) ? "checked" : ""}>
-      <span><strong>${esc(r.name)}</strong><br><span class="spec">${r.dwarf ? "" : `F/D ${fmt(r.F / r.D, 1)} · `}champ ${fmt(f.w, 2)}° × ${fmt(f.h, 2)}° · ${fmt(f.scale, 2)}″/px · ${esc(r.mount)}${r.guided ? " · guidage " + esc(r.guided) : r.dwarf ? "" : " · sans guidage"}${r.load ? ` · charge ≈ ${fmt(r.load, 1)} / ${fmt(r.cap, 1)} kg` : ""}</span></span></label>`; }).join("");
+      <span><strong>${esc(r.name)}</strong><br><span class="spec">${r.dwarf ? "" : `F/D ${fmt(r.F / r.D, 1)} · `}${L("champ", "field")} ${fmt(f.w, 2)}° × ${fmt(f.h, 2)}° · ${fmt(f.scale, 2)}″/px · ${esc(r.mount)}${r.guided ? L(" · guidage ", " · guided by ") + esc(r.guided) : r.dwarf ? "" : L(" · sans guidage", " · unguided")}${r.load ? ` · ${L("charge", "load")} ≈ ${fmt(r.load, 1)} / ${fmt(r.cap, 1)} kg` : ""}</span></span></label>`; }).join("");
   $("#siteLabel").textContent = S.siteName;
   $("#wxLink").href = `https://clearoutside.com/forecast/${Number(S.lat).toFixed(2)}/${Number(S.lon).toFixed(2)}`;
 }
@@ -1265,6 +1289,50 @@ window.addEventListener("appinstalled", () => { $("#installBtn").hidden = true; 
 const netState = () => { $("#offline").hidden = navigator.onLine !== false; };
 window.addEventListener("online", () => { netState(); loadWeather(true).then(() => { renderNightbar(); show(); }); });
 window.addEventListener("offline", netState); netState();
+
+
+// ---------------------------------------------------------------- textes fixes en anglais
+const STATIC_EN = [
+  ['label[for="date"]', "Evening of"], ['label[for="minAlt"]', "Min. altitude"],
+  ["#redBtn", "Red mode"], ["#redBtn", "Red palette to keep your night vision", "title"],
+  ['nav.tabs a[data-view="ce-soir"]', "Tonight"], ['nav.tabs a[data-view="carte"]', "Sky map"], ['nav.tabs a[data-view="cible"]', "Target"],
+  ['nav.tabs a[data-view="nuits"]', "Best nights"], ['nav.tabs a[data-view="journal"]', "Log"], ['nav.tabs a[data-view="materiel"]', "Gear & site"],
+  ["nav.tabs", "Views", "aria-label"],
+  ["#v-ce-soir h2", "Tonight's best targets"], ["#typeChips", "Object type", "aria-label"], ["#rigChips", "Rig", "aria-label"],
+  ["#v-ce-soir thead tr", "<th>Object</th><th>Type</th><th class=\"num\">Size</th><th>Usable window</th><th class=\"num\">Duration</th><th class=\"num\">Culminates</th><th>Moon</th><th>Cloud</th><th>Log</th><th>Best rig</th>", "html"],
+  ["#v-carte h2", "Sky map"], ["#mapChips", "Objects shown", "aria-label"], ["#mapTime", "Map time", "aria-label"], ["#mapNow", "Now"],
+  ["#skyMap", "Sky map: tap a target to open it", "aria-label"], ["#zoomIn", "Zoom in", "aria-label"], ["#zoomOut", "Zoom out", "aria-label"], ["#zoomReset", "Whole sky", "aria-label"],
+  [".legendmap", '<span><b style="color:var(--accent)">●</b> well-placed target (above the minimum altitude, full darkness)</span><span><b style="color:var(--muted)">●</b> visible but low or behind an obstacle</span><span>◯ galaxy · □ nebula · ✛ cluster</span><span>View looking up: north up, east left, zenith in the centre</span>', "html"],
+  ["#q", "M 31, NGC 7000, Heart, Sh2-129…", "placeholder"], ["#q", "Search for a target", "aria-label"],
+  ['label[for="nightsSpan"]', "Period"], ['#nightsSpan', '<option value="14">14 nights</option><option value="30">30 nights</option><option value="60">60 nights</option>', "html"],
+  ["#v-journal h2", "Target log"], ['label[for="journalFile"]', "Import an AstroCheck log…"],
+  ["#journalDrop", 'Drop the <span class="mono">journal.json</span> file written by AstroCheck here', "html"],
+  ["#v-journal p.note", 'AstroCheck writes this log at every export (and with Analysis ▸ Update the AstroPlan log) to <span class="mono">~/.config/astrocheck/journal.json</span>. On your server, copy it next to the page so it shows everywhere:<br><span class="mono">scp ~/.config/astrocheck/journal.json server:/var/www/astroplan/site/journal.json</span>', "html"],
+  ["#v-materiel h2:nth-of-type(1)", "Site and sky"], ['label[for="lat"]', "Latitude (north +)"], ['label[for="lon"]', "Longitude (east +)"], ['label[for="siteName"]', "Site name"],
+  ['label[for="bortle"]', "Sky (Bortle scale)"], ['label[for="seeing"]', "Typical seeing (FWHM)"],
+  ["#seeing", '<option value="2">2″ (very good)</option><option value="2.5">2.5″</option><option value="3">3″ (average)</option><option value="4">4″ (poor)</option>', "html"],
+  ["#dwarfEq", '<option value="0">Alt-azimuth mode</option><option value="1">Equatorial mode</option>', "html"],
+  ["#v-materiel p.note:nth-of-type(1)", 'Light pollution sets the advised sub length and total time. Bortle 5 is an estimate for Saint-Mitre: adjust it with an SQM reading or the <a href="https://www.lightpollutionmap.info" target="_blank" rel="noopener">lightpollutionmap.info</a> map.', "html"],
+  ["#v-materiel h2:nth-of-type(2)", "Local horizon"],
+  ["#v-materiel p.note:nth-of-type(2)", "Height of obstacles (trees, houses, terrain) in each direction, in degrees. A target hidden behind an obstacle does not count in the usable window."],
+  ["#v-materiel h2:nth-of-type(3)", "Rigs"],
+  ["#v-materiel p.note:nth-of-type(3)", "Untick the ones you are not taking: advice will only use the others."],
+  ["#savedMsg", "Settings saved"],
+  ["#installBtn", "Install the app"], ["#offline", "offline"],
+  ["footer", 'Positions computed for the date (precession); Moon and Sun to within a few arcminutes. Sub lengths and total times are orders of magnitude for your sky, to refine with experience. NGC/IC and Messier catalogue: <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> by Mattia Verga (CC BY-SA 4.0); Sharpless nebulae: approximate coordinates. Stars and constellations: <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a> by Olaf Frohn (BSD). Weather: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> forecasts (CC BY 4.0) when the page can reach them; otherwise <a id="wxLink" href="https://clearoutside.com/forecast/43.46/5.02" target="_blank" rel="noopener">Clear Outside for your site</a>.', "html"],
+];
+function applyStaticLang() {
+  $("#langBtn").textContent = EN ? "FR" : "EN";
+  $("#langBtn").setAttribute("aria-label", EN ? "Passer en français" : "Switch to English");
+  if (!EN) return;
+  for (const [sel, val, how] of STATIC_EN) {
+    const el = document.querySelector(sel); if (!el) continue;
+    if (!how) el.textContent = val; else if (how === "html") el.innerHTML = val; else el.setAttribute(how, val);
+  }
+  const nv = $("#nightsSpan"); if (nv) nv.value = "30";
+}
+$("#langBtn").addEventListener("click", () => { try { localStorage.setItem("astroplan-lang", EN ? "fr" : "en"); } catch (e) {} location.reload(); });
+applyStaticLang();
 
 // ---------------------------------------------------------------- démarrage
 loadLocal();
