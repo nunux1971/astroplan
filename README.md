@@ -9,6 +9,7 @@ Elle complète [AstroCheck](https://github.com/nunux1971/astrocheck), qui trie e
 ## Ce qu'elle fait
 
 - **Ce soir** : les meilleures cibles de la nuit, avec leur fenêtre au-dessus de la hauteur minimale, la gêne de la Lune et l'instrument conseillé. Filtres par type d'objet et par instrument.
+- **Carte du ciel** : le ciel vu en levant la tête à l'heure choisie (curseur sur toute la nuit), avec étoiles, constellations, Lune, horizon local et vos cibles ; zoom au doigt ou à la molette, et une touche sur une cible ouvre sa fiche.
 - **Cible** : courbe de hauteur pendant la nuit, classement des instruments avec aperçu du cadrage, filtre, pose unitaire, temps total conseillé, retournement au méridien, rotation de champ du Dwarf 3, et une fiche de soirée à copier.
 - **Meilleures nuits** : les 14 à 60 prochaines soirées pour une cible, selon la nuit noire et la Lune.
 - **Aperçu dans l'instrument** : le champ de chaque instrument posé sur une image du ciel réel (relevés DSS2 et Mellinger, via NASA SkyView ou le CDS de Strasbourg), en vue large ou au format du capteur, avec la rotation du capteur réglable.
@@ -64,6 +65,6 @@ python3 build.py      # régénère site/index.html
 
 Le code d'AstroPlan est distribué sous licence [GPL-2.0](LICENSE).
 
-Prévisions météo : [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Images du ciel : [NASA SkyView](https://skyview.gsfc.nasa.gov) et [CDS, Strasbourg](https://alasky.cds.unistra.fr) (relevés DSS2 et Mellinger).
+Prévisions météo : [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Étoiles et constellations : [d3-celestial](https://github.com/ofrohn/d3-celestial) d'Olaf Frohn (licence BSD, voir `src/LICENSE-d3-celestial`). Images du ciel : [NASA SkyView](https://skyview.gsfc.nasa.gov) et [CDS, Strasbourg](https://alasky.cds.unistra.fr) (relevés DSS2 et Mellinger).
 
 Le catalogue NGC/IC et Messier provient d'[OpenNGC](https://github.com/mattiaverga/OpenNGC) de Mattia Verga, sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Les coordonnées des nébuleuses Sharpless ajoutées sont approchées.

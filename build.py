@@ -5,7 +5,7 @@ import os
 
 here = os.path.dirname(os.path.abspath(__file__))
 src = lambda *p: open(os.path.join(here, "src", *p), encoding="utf-8").read()
-page = src("template.html").replace("/*CATALOG*/[]", src("catalog.json"))
+page = src("template.html").replace("/*CATALOG*/[]", src("catalog.json")).replace("/*SKY*/null", src("sky.json"))
 head = (
     '<meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'

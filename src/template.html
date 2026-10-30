@@ -138,6 +138,16 @@ pre.sheet { white-space: pre-wrap; font: 13px/1.55 var(--f-mono); background: va
 .skybox .scale { position: absolute; left: 8px; bottom: 6px; font: 11px var(--f-mono); color: #dde; text-shadow: 0 0 3px #000 }
 .pvctl { display: grid; gap: 10px }
 .pvctl input[type=range] { width: 100% }
+.mapwrap { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; touch-action: none }
+.mapwrap canvas { display: block; width: 100%; height: auto; cursor: grab }
+.mapwrap canvas.drag { cursor: grabbing }
+.mapzoom { position: absolute; right: 10px; top: 10px; display: grid; gap: 6px }
+.mapzoom button { width: 36px; height: 36px; font-size: 18px; padding: 0 }
+.mappop { position: absolute; z-index: 3; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; max-width: 260px; box-shadow: 0 4px 16px rgba(0,0,0,.35); font-size: 14px }
+.mappop .btn { margin-top: 8px }
+.maptime { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; margin: 10px 0 }
+.maptime input[type=range] { width: 100% }
+.legendmap { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 8px }
 .drop { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center; color: var(--muted); background: var(--panel) }
 .drop.over { border-color: var(--accent); color: var(--ink) }
 footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80ch }
@@ -158,6 +168,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
 
   <nav class="tabs" aria-label="Vues">
     <a href="#ce-soir" data-view="ce-soir">Ce soir</a>
+    <a href="#carte" data-view="carte">Carte du ciel</a>
     <a href="#cible" data-view="cible">Cible</a>
     <a href="#nuits" data-view="nuits">Meilleures nuits</a>
     <a href="#journal" data-view="journal">Journal</a>
@@ -178,6 +189,30 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
       <tbody id="tonightBody"></tbody>
     </table></div>
     <p class="note" id="tonightNote"></p>
+  </section>
+
+  <!-- CARTE -->
+  <section class="view" id="v-carte" hidden>
+    <div class="toolbar">
+      <h2 style="margin-right:auto">Carte du ciel</h2>
+      <div class="chips" id="mapChips" role="group" aria-label="Objets affichés"></div>
+    </div>
+    <div class="maptime">
+      <span class="num" id="mapTimeLabel">--:--</span>
+      <input type="range" id="mapTime" min="0" max="100" step="1" aria-label="Heure de la carte">
+      <button class="btn" type="button" id="mapNow">Maintenant</button>
+    </div>
+    <div class="mapwrap" id="mapWrap">
+      <canvas id="skyMap" aria-label="Carte du ciel : touchez une cible pour l'ouvrir"></canvas>
+      <div class="mapzoom"><button class="btn" type="button" id="zoomIn" aria-label="Zoomer">+</button><button class="btn" type="button" id="zoomOut" aria-label="Dézoomer">−</button><button class="btn" type="button" id="zoomReset" aria-label="Vue entière" style="font-size:13px">⤢</button></div>
+      <div class="mappop" id="mapPop" hidden></div>
+    </div>
+    <div class="legendmap">
+      <span><b style="color:var(--accent)">●</b> cible bien placée (au-dessus de la hauteur mini, nuit noire)</span>
+      <span><b style="color:var(--muted)">●</b> cible visible mais basse ou derrière un obstacle</span>
+      <span>◯ galaxie · □ nébuleuse · ✛ amas</span>
+      <span>Vue en levant la tête : nord en haut, est à gauche, zénith au centre</span>
+    </div>
   </section>
 
   <!-- CIBLE -->
@@ -227,7 +262,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
   </section>
 
   <footer>
-    Positions calculées pour la date (précession), Lune et Soleil à quelques minutes d'arc près. Les poses et temps totaux sont des ordres de grandeur pour votre ciel, à affiner avec l'expérience. Catalogue NGC/IC et Messier : <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> de Mattia Verga (CC BY-SA 4.0) ; nébuleuses Sharpless : coordonnées approchées.
+    Positions calculées pour la date (précession), Lune et Soleil à quelques minutes d'arc près. Les poses et temps totaux sont des ordres de grandeur pour votre ciel, à affiner avec l'expérience. Catalogue NGC/IC et Messier : <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> de Mattia Verga (CC BY-SA 4.0) ; nébuleuses Sharpless : coordonnées approchées. Étoiles et constellations : <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a> d'Olaf Frohn (BSD).
     Météo : prévisions <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) quand la page peut les joindre ; sinon <a id="wxLink" href="https://clearoutside.com/forecast/43.46/5.02" target="_blank" rel="noopener">Clear Outside pour votre lieu</a>.
   </footer>
 </div>
@@ -235,6 +270,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
 <script>
 "use strict";
 const CATALOG = /*CATALOG*/[];
+const SKY = /*SKY*/null;
 
 // ---------------------------------------------------------------- matériel
 const FILTERS = {
@@ -936,6 +972,155 @@ function renderNights() {
     <p class="note">Qualité : heures de nuit noire au-dessus de ${S.minAlt}°, réduites par la Lune ${emi ? "(modérément : cible en émission, filtre bi-bande)" : "(fortement : cible à photographier sans filtre)"}. ${WX ? "Les nuages prévus (Open-Meteo, 16 jours) réduisent la note ; au-delà, seule la Lune compte." : "Prévision météo indisponible ici : consultez"} <a href="https://clearoutside.com/forecast/${Number(S.lat).toFixed(2)}/${Number(S.lon).toFixed(2)}" target="_blank" rel="noopener">Clear Outside</a>. Cliquez sur une soirée pour l'ouvrir.</p>`;
 }
 
+// ---- Carte du ciel
+const MAP = { t: null, zoom: 1, ox: 0, oy: 0, filter: "best", hits: [], best: new Set(), bestKey: "", sel: null };
+function mapTimes() {
+  const a = NM.sunset ? NM.sunset - 3.6e6 : NM.t0 + 6 * 3.6e6, b = NM.sunrise ? NM.sunrise + 3.6e6 : NM.t0 + 19 * 3.6e6;
+  return [a, b];
+}
+function bestTonight() {   // les 40 meilleures cibles, comme l'onglet « Ce soir » (calcul mis en cache)
+  const key = dateValue() + S.minAlt + S.rigs.join() + S.bortle + JSON.stringify(S.horizon);
+  if (key === MAP.bestKey) return MAP.best;
+  const rows = [];
+  for (const o of CATALOG) { if (!o[5] && o[2] !== "PN") continue; const vis = visibility(o, NM); if (vis.usable < 1) continue;
+    const rigs = bestRigs(o, vis, NM); if (!rigs.length) continue;
+    const fame = (o[0].startsWith("M ") ? 0.15 : 0) + (o[9] ? 0.1 : 0);
+    rows.push([o[0], rigs[0].score + 0.25 * Math.min(1, vis.usable / 5) + fame]); }
+  rows.sort((a, b) => b[1] - a[1]);
+  MAP.best = new Set(rows.slice(0, 40).map(r => r[0])); MAP.bestKey = key; return MAP.best;
+}
+function renderMapChips() {
+  const opts = [["best", "Meilleures cibles du soir"], ["all", "Tout le catalogue"], ["neb", "Nébuleuses"], ["gal", "Galaxies"], ["amas", "Amas"]];
+  $("#mapChips").innerHTML = opts.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${MAP.filter === k}">${l}</button>`).join("");
+}
+function renderMap() {
+  const [a, b] = mapTimes();
+  if (MAP.t === null || MAP.t < a || MAP.t > b) { const now = Date.now(); MAP.t = now >= a && now <= b ? now : (NM.darkStart || a); }
+  const sl = $("#mapTime"); sl.min = 0; sl.max = Math.round((b - a) / 300000); sl.value = Math.round((MAP.t - a) / 300000);
+  renderMapChips(); drawMap();
+}
+function css(name) { return getComputedStyle(document.body).getPropertyValue(name).trim() || "#888"; }
+function drawMap() {
+  const cv = $("#skyMap"), wrap = $("#mapWrap");
+  const Wc = wrap.clientWidth || 600, size = Math.min(Wc, Math.max(320, window.innerHeight - 140));
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Wc * dpr; cv.height = size * dpr; cv.style.height = size + "px";
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const t = MAP.t, jd = jdOf(t), sun = sunPos(jd), sunAlt = altaz(sun.ra, sun.dec, jd).alt;
+  $("#mapTimeLabel").textContent = `${hhmm(t)}${sunAlt > -18 ? (sunAlt > -6 ? " · jour/crépuscule" : " · crépuscule") : ""}`;
+  const R0 = size / 2 - 22, cx0 = Wc / 2, cy0 = size / 2;
+  const R = R0 * MAP.zoom, cx = cx0 + MAP.ox, cy = cy0 + MAP.oy;
+  const proj = (alt, az) => { const r = (90 - alt) / 90 * R, a = az * D2R; return [cx - r * Math.sin(a), cy - r * Math.cos(a)]; };
+  const P = (ra, dec) => { const h = altaz(ra, dec, jd); return h.alt < -1 ? null : proj(h.alt, h.az).concat(h.alt, h.az); };
+  const ink = css("--ink"), muted = css("--muted"), accent = css("--accent"), line = css("--line"), panel = css("--panel");
+  const red = document.body.classList.contains("red");
+  g.fillStyle = panel; g.fillRect(0, 0, Wc, size);
+  // ciel
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI);
+  g.fillStyle = red ? "#0a0000" : sunAlt < -18 ? "#05080f" : sunAlt < -6 ? "#0f1a33" : "#2b4a7a"; g.fill(); g.clip();
+  // obstacles et hauteur mini
+  g.beginPath();
+  for (let az = 0; az <= 360; az += 3) { const [x, y] = proj(minAltAt(az), az); az ? g.lineTo(x, y) : g.moveTo(x, y); }
+  g.closePath(); g.arc(cx, cy, R, 0, 2 * Math.PI, true); g.fillStyle = red ? "rgba(80,0,0,.35)" : "rgba(120,130,150,.22)"; g.fill();
+  // cercles de hauteur
+  g.strokeStyle = red ? "#3a0a07" : "rgba(160,175,205,.25)"; g.lineWidth = 1;
+  for (const alt of [30, 60]) { g.beginPath(); g.arc(cx, cy, (90 - alt) / 90 * R, 0, 2 * Math.PI); g.stroke(); }
+  // constellations
+  g.strokeStyle = red ? "#5a120c" : "rgba(120,150,210,.45)"; g.lineWidth = 1;
+  for (const L of SKY.lines) { g.beginPath(); let on = false;
+    for (let i = 0; i < L.length; i += 2) { const p = P(L[i], L[i + 1]); if (!p) { on = false; continue; } on ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); on = true; } g.stroke(); }
+  // étoiles
+  for (const [ra, dec, mag, bv] of SKY.stars) { const p = P(ra, dec); if (!p) continue;
+    const r = Math.max(0.5, (5.6 - mag) * 0.55) * Math.min(2, Math.sqrt(MAP.zoom));
+    g.fillStyle = red ? "#ff6a55" : bv > 1.2 ? "#ffd2a8" : bv > 0.6 ? "#fff1d6" : bv < 0 ? "#cfe0ff" : "#ffffff";
+    g.beginPath(); g.arc(p[0], p[1], r, 0, 2 * Math.PI); g.fill(); }
+  // noms
+  g.font = `11px ${css("--f-body")}`; g.textAlign = "center";
+  g.fillStyle = red ? "#a8261c" : "rgba(150,170,215,.75)";
+  for (const [ra, dec, n] of SKY.cons) { const p = P(ra, dec); if (p && p[2] > 8) g.fillText(n, p[0], p[1]); }
+  g.fillStyle = red ? "#d0473a" : "rgba(235,235,245,.8)"; g.textAlign = "left";
+  for (const [ra, dec, n] of SKY.names) { const p = P(ra, dec); if (p && p[2] > 3) g.fillText(n, p[0] + 5, p[1] - 4); }
+  // Lune
+  const mo = moonState(jd);
+  if (mo.alt > -1) { const [x, y] = proj(mo.alt, mo.az), r = 9;
+    g.fillStyle = red ? "#5a120c" : "#3a3f4a"; g.beginPath(); g.arc(x, y, r, 0, 2 * Math.PI); g.fill();
+    g.fillStyle = red ? "#ff6a55" : "#f2f0e6"; g.beginPath();
+    const k = 1 - 2 * mo.illum, side = mo.waxing ? 1 : -1;   // partie éclairée (côté approximatif)
+    g.arc(x, y, r, -Math.PI / 2, Math.PI / 2, side < 0); g.ellipse(x, y, Math.abs(k) * r, r, 0, Math.PI / 2, -Math.PI / 2, (k > 0) === (side < 0)); g.fill();
+    g.fillStyle = muted; g.textAlign = "left"; g.fillText(`Lune ${Math.round(mo.illum * 100)} %`, x + 12, y + 4); }
+  // cibles
+  const best = bestTonight(), dark = sunAlt <= -18;
+  MAP.hits = [];
+  const placed = [];   // étiquettes déjà posées, pour éviter les chevauchements
+  const free = (x, y, w, h) => !placed.some(r => x < r[0] + r[2] && x + w > r[0] && y < r[1] + r[3] && y + h > r[1]);
+  const objs = CATALOG.filter(o => MAP.filter === "best" ? best.has(o[0]) : MAP.filter === "all" ? true : FAMILY(o[2]) === MAP.filter);
+  g.textAlign = "left";
+  for (const o of objs) {
+    const [ra, dec] = [o[3] * 15, o[4]], p = P(ra, dec); if (!p || p[2] < 0) continue;
+    const good = dark && p[2] >= minAltAt(p[3]);
+    const fam = FAMILY(o[2]), col = good ? accent : muted;
+    const sz = Math.max(3.5, Math.min(26, (o[5] || 2) / 60 / 90 * R / 2));
+    g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1.6;
+    g.beginPath();
+    if (fam === "gal") g.ellipse(p[0], p[1], sz, sz * 0.6, 0, 0, 2 * Math.PI);
+    else if (fam === "neb") g.rect(p[0] - sz, p[1] - sz, 2 * sz, 2 * sz);
+    else { g.moveTo(p[0] - sz, p[1]); g.lineTo(p[0] + sz, p[1]); g.moveTo(p[0], p[1] - sz); g.lineTo(p[0], p[1] + sz); }
+    g.stroke();
+    if (current && o[0] === current[0]) { g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); g.arc(p[0], p[1], sz + 6, 0, 2 * Math.PI); g.stroke(); }
+    const isSel = current && o[0] === current[0];
+    if (MAP.filter === "best" || MAP.zoom >= 2 || isSel) {
+      g.font = `600 12px ${css("--f-body")}`;
+      const tw = g.measureText(o[0]).width, lx = p[0] + sz + 4, ly = p[1] - 8;
+      if (isSel || free(lx, ly, tw, 14)) { placed.push([lx, ly, tw, 14]); g.fillStyle = good ? accent : muted; g.fillText(o[0], lx, p[1] + 4); }
+    }
+    MAP.hits.push({ o, x: p[0], y: p[1], r: Math.max(12, sz + 4), alt: p[2], az: p[3], good });
+  }
+  g.restore();
+  // bord et points cardinaux
+  g.strokeStyle = red ? "#5a120c" : line; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.stroke();
+  g.fillStyle = ink; g.font = `600 13px ${css("--f-body")}`; g.textAlign = "center";
+  for (const [n, az] of [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SO", 225], ["O", 270], ["NO", 315]]) {
+    const r = R + 12, a = az * D2R, x = cx - r * Math.sin(a), y = cy - r * Math.cos(a) + 4;
+    if (x > 6 && x < Wc - 6 && y > 8 && y < size - 2) g.fillText(n, x, y); }
+}
+function mapPick(x, y) {
+  let best = null, bd = 1e9;
+  for (const h of MAP.hits) { const d = Math.hypot(h.x - x, h.y - y); if (d < h.r && d < bd) { bd = d; best = h; } }
+  const pop = $("#mapPop");
+  if (!best) { pop.hidden = true; return; }
+  const o = best.o, vis = visibility(o, NM);
+  pop.innerHTML = `<div class="obj">${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(label(o))}</small></div>
+    <div class="num" style="margin-top:4px">hauteur ${Math.round(best.alt)}° · azimut ${Math.round(best.az)}°</div>
+    <div class="muted" style="font-size:13px">${vis.usable ? `fenêtre ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : "pas de fenêtre utile ce soir"}</div>
+    <button class="btn primary" type="button" data-open="${esc(o[0])}">Ouvrir la fiche</button>`;
+  const wrap = $("#mapWrap"), w = wrap.clientWidth;
+  pop.style.left = Math.min(Math.max(8, x + 12), w - 270) + "px"; pop.style.top = Math.max(8, y - 20) + "px"; pop.hidden = false;
+}
+(function mapEvents() {
+  const cv = $("#skyMap"), pts = new Map(); let moved = false, start = null, pinch0 = null;
+  const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, pos(e)); moved = false; start = pos(e);
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: MAP.zoom }; } });
+  cv.addEventListener("pointermove", e => { if (!pts.has(e.pointerId)) return; const p = pos(e), q = pts.get(e.pointerId); pts.set(e.pointerId, p);
+    if (pts.size === 2 && pinch0) { const [a, b] = [...pts.values()]; zoomTo(pinch0.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch0.d); moved = true; return; }
+    if (Math.hypot(p[0] - start[0], p[1] - start[1]) > 4) { moved = true; cv.classList.add("drag"); MAP.ox += p[0] - q[0]; MAP.oy += p[1] - q[1]; drawMap(); } });
+  const up = e => { const p = pts.get(e.pointerId); pts.delete(e.pointerId); cv.classList.remove("drag"); if (pts.size < 2) pinch0 = null;
+    if (p && !moved) mapPick(p[0], p[1]); };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", e => { pts.delete(e.pointerId); pinch0 = null; });
+  cv.addEventListener("wheel", e => { e.preventDefault(); zoomTo(MAP.zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2)); }, { passive: false });
+  function zoomTo(z) { const nz = Math.max(1, Math.min(6, z)); const k = nz / MAP.zoom; MAP.ox *= k; MAP.oy *= k; MAP.zoom = nz; if (nz === 1) { MAP.ox = MAP.oy = 0; } $("#mapPop").hidden = true; drawMap(); }
+  $("#zoomIn").addEventListener("click", () => zoomTo(MAP.zoom * 1.5));
+  $("#zoomOut").addEventListener("click", () => zoomTo(MAP.zoom / 1.5));
+  $("#zoomReset").addEventListener("click", () => zoomTo(1));
+  $("#mapTime").addEventListener("input", e => { MAP.t = mapTimes()[0] + Number(e.target.value) * 300000; $("#mapPop").hidden = true; drawMap(); });
+  $("#mapNow").addEventListener("click", () => { const [a, b] = mapTimes(), n = Date.now();
+    if (n < a || n > b) { $("#date").value = today(); refreshAll(); }
+    MAP.t = Date.now(); renderMap(); });
+  $("#mapChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; MAP.filter = b.dataset.k; renderMapChips(); drawMap(); });
+  $("#mapPop").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) { $("#mapPop").hidden = true; openTarget(b.dataset.open); } });
+  window.addEventListener("resize", () => { if (currentView() === "carte") drawMap(); });
+})();
+
 // ---- Journal
 function renderJournal() {
   const pane = $("#journalPane");
@@ -1005,19 +1190,21 @@ function renderGear() {
 }
 
 // ---------------------------------------------------------------- navigation
-const VIEWS = ["ce-soir", "cible", "nuits", "journal", "materiel"];
+const VIEWS = ["ce-soir", "carte", "cible", "nuits", "journal", "materiel"];
 function currentView() { const h = location.hash.slice(1); return VIEWS.includes(h) ? h : "ce-soir"; }
 function show() {
   const v = currentView();
   for (const x of VIEWS) $("#v-" + x).hidden = x !== v;
+  $("#nightbar").hidden = v === "carte" && window.innerWidth < 700;
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.view === v ? "page" : "false"));
   if (v === "ce-soir") renderTonight();
   if (v === "cible") renderTarget();
   if (v === "nuits") renderNights();
+  if (v === "carte") renderMap();
   if (v === "journal") renderJournal();
   if (v === "materiel") renderGear();
 }
-function refreshAll() { S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); renderNightbar(); renderTypeChips(); show(); }
+function refreshAll() { S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); if (typeof MAP !== "undefined") MAP.t = null; renderNightbar(); renderTypeChips(); show(); }
 function openTarget(id) { current = CATALOG.find(o => o[0] === id) || current; try { sessionStorage.setItem("astroplan-target", current[0]); } catch (e) {}
   if (location.hash !== "#cible") location.hash = "cible"; else show(); }
 
@@ -1029,6 +1216,7 @@ $("#date").addEventListener("change", refreshAll);
 $("#minAlt").addEventListener("change", refreshAll);
 $("#nightsSpan").addEventListener("change", renderNights);
 $("#redBtn").addEventListener("click", () => { const on = document.body.classList.toggle("red"); $("#redBtn").setAttribute("aria-pressed", on);
+  if (currentView() === "carte") drawMap();
   try { localStorage.setItem("astroplan-red", on ? "1" : ""); } catch (e) {} });
 window.addEventListener("hashchange", show);
 $("#typeChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; typeFilter = b.dataset.k; renderTypeChips(); renderTonight(); });
