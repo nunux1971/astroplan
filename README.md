@@ -84,6 +84,26 @@ Puis, toutes les six heures (les orbites de l'ISS vieillissent vite) :
 echo "23 */6 * * * root python3 /var/www/astroplan/tools/space_sync.py >/dev/null 2>&1" | sudo tee /etc/cron.d/astroplan-space
 ```
 
+## Alertes sur le téléphone (ntfy)
+
+`tools/clear_night_alert.py` envoie une notification sur le téléphone, par l'application gratuite [ntfy](https://ntfy.sh) (Android : Play Store ou F-Droid ; aucun compte) :
+
+- **nuit claire** : chaque après-midi, si la prévision Open-Meteo donne au moins 3 heures de nuit noire avec moins de 25 % de nuages, avec le créneau, la Lune, la buée et le vent ;
+- **transit de l'ISS ou de Tiangong** devant le Soleil ou la Lune, visible d'ici ou à moins de 40 km, dans les 48 heures ;
+- **orage géomagnétique** (indice Kp prévu de 7 ou plus) : aurore possible.
+
+Installation sur le serveur :
+
+```bash
+sudo apt install python3-sgp4            # calcul des orbites, pour les transits
+sudo mkdir -p /etc/astroplan
+echo "{\"topic\": \"astroplan-$(openssl rand -hex 6)\"}" | sudo tee /etc/astroplan/alerts.json
+sudo python3 /var/www/astroplan/tools/clear_night_alert.py --test
+echo "41 7,16 * * * root python3 /var/www/astroplan/tools/clear_night_alert.py >/dev/null 2>&1" | sudo tee /etc/cron.d/astroplan-alertes
+```
+
+Dans l'application ntfy, abonnez-vous au sujet écrit dans `/etc/astroplan/alerts.json` (le nom fait office de mot de passe : gardez-le pour vous). Réglages possibles dans ce fichier : `max_cloud` (25), `min_hours` (3), `max_gust` (45), `lat`, `lon`, `site`, `server` et `token` pour un serveur ntfy personnel. `--dry-run` affiche le message sans l'envoyer.
+
 ## Modifier le matériel ou le catalogue
 
 La page est assemblée à partir de `src/template.html` (interface, calculs, liste du matériel) et `src/catalog.json` (catalogue d'objets) :
