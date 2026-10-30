@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>AstroPlan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mise en page : une barre de réglages (lieu, date, ciel) puis quatre vues en onglets,
+   lisibles sur téléphone ; un « mode rouge » pour le terrain. */
+:root {
+  --bg: #f3f5f9; --panel: #ffffff; --ink: #172033; --muted: #5a6478; --line: #d9dee8;
+  --accent: #b5620e; --accent-soft: #f6e6d3; --night: #1f2b47; --twilight: #c9d3e6;
+  --good: #23824f; --warn: #b7791f; --bad: #c0392b; --target: #b5620e; --moon: #6b7a99;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1422; --panel: #141d30; --ink: #e5e9f2; --muted: #96a0b5; --line: #26314a;
+  --accent: #f0a64a; --accent-soft: #3a2a17; --night: #050912; --twilight: #1f2c48;
+  --good: #4cc489; --warn: #e8b04a; --bad: #ef6b5b; --target: #f0a64a; --moon: #9fb0d4; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d1422; --panel: #141d30; --ink: #e5e9f2; --muted: #96a0b5; --line: #26314a;
+  --accent: #f0a64a; --accent-soft: #3a2a17; --night: #050912; --twilight: #1f2c48;
+  --good: #4cc489; --warn: #e8b04a; --bad: #ef6b5b; --target: #f0a64a; --moon: #9fb0d4; color-scheme: dark }
+/* mode rouge : préserve la vision nocturne sur le terrain */
+body.red {
+  --bg: #0a0000; --panel: #140202; --ink: #ff5a4a; --muted: #b8352b; --line: #3a0a07;
+  --accent: #ff3b2a; --accent-soft: #2a0503; --night: #050000; --twilight: #250504;
+  --good: #ff6a55; --warn: #ff4a3a; --bad: #ff2a1a; --target: #ff4a35; --moon: #a8261c; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 40px }
+.wrap { max-width: 1080px; margin: 0 auto }
+h1, h2, h3 { font-family: var(--f-display); letter-spacing: .01em; text-wrap: balance; margin: 0 }
+h1 { font-size: 30px; font-weight: 700 }
+h2 { font-size: 24px; font-weight: 600 }
+h3 { font-size: 18px; font-weight: 600 }
+.mono, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums }
+.muted { color: var(--muted) }
+a { color: var(--accent) }
+button, select, input { font: inherit; color: inherit }
+
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding-block: 16px 10px }
+header.top .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto }
+header.top .brand small { font-family: var(--f-mono); font-size: 12px; color: var(--muted) }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end }
+.field { display: grid; gap: 2px }
+.field label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
+.field input, .field select { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0 }
+.btn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer }
+.btn:hover { border-color: var(--accent) }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600 }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 6px; overflow-x: auto }
+nav.tabs a { text-decoration: none; color: var(--muted); padding: 8px 14px; font-family: var(--f-display); font-size: 18px; font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent) }
+
+.nightbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 16px 0 }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0 }
+.stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
+.stat .v { font-family: var(--f-mono); font-size: 18px; font-variant-numeric: tabular-nums }
+.stat .s { font-size: 13px; color: var(--muted) }
+
+section.view { margin-top: 14px }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 3px 11px; font-size: 13px; cursor: pointer }
+.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink) }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel) }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; white-space: nowrap }
+tr:last-child td { border-bottom: 0 }
+tbody tr.click { cursor: pointer }
+tbody tr.click:hover { background: var(--accent-soft) }
+td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap }
+.obj { font-weight: 600 }
+.obj small { display: block; font-weight: 400; color: var(--muted) }
+.pill { display: inline-block; font-size: 12px; border-radius: 4px; padding: 0 6px; border: 1px solid var(--line); white-space: nowrap }
+.pill.good { color: var(--good); border-color: currentColor }
+.pill.warn { color: var(--warn); border-color: currentColor }
+.pill.bad { color: var(--bad); border-color: currentColor }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; min-width: 60px }
+.bar i { display: block; height: 100% ; background: var(--accent) }
+
+.search { position: relative; flex: 1 1 260px; min-width: 0 }
+.search input { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 16px }
+.sugg { position: absolute; left: 0; right: 0; top: 100%; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; max-height: 300px; overflow-y: auto; margin-top: 2px }
+.sugg button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; cursor: pointer }
+.sugg button:hover, .sugg button:focus { background: var(--accent-soft) }
+
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px }
+@media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr) } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0 }
+.card + .card { margin-top: 0 }
+.stack { display: grid; gap: 16px }
+.chart svg { width: 100%; height: auto; display: block }
+.chart text { fill: var(--muted); font: 11px var(--f-mono) }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 6px }
+.legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px }
+
+.rig { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 14px; background: var(--panel) }
+.rig.best { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset }
+.rig .frame svg { width: 100%; height: auto; display: block }
+.rig h3 { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline }
+.rig dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; margin: 8px 0 0; font-size: 14px }
+.rig dt { color: var(--muted) }
+.rig dd { margin: 0 }
+.rig .notes { margin: 8px 0 0; padding-left: 18px; font-size: 13.5px }
+@media (max-width: 520px) { .rig { grid-template-columns: minmax(0, 1fr) } .rig .frame { max-width: 220px } }
+.badge { font-family: var(--f-mono); font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 6px }
+
+pre.sheet { white-space: pre-wrap; font: 13px/1.55 var(--f-mono); background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 12px; margin: 8px 0 0; overflow-x: auto }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
+.gear { display: grid; gap: 10px }
+.gear label.rigrow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer }
+.gear .spec { font-size: 13px; color: var(--muted) }
+.note { font-size: 13px; color: var(--muted); max-width: 70ch }
+.saved { font-size: 13px; color: var(--good) }
+footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80ch }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>AstroPlan</h1><small id="siteLabel">Saint-Mitre-les-Remparts</small></div>
+    <div class="controls">
+      <div class="field"><label for="date">Soirée du</label><input type="date" id="date"></div>
+      <div class="field"><label for="minAlt">Hauteur mini</label>
+        <select id="minAlt"><option value="20">20°</option><option value="25">25°</option><option value="30" selected>30°</option><option value="40">40°</option></select></div>
+      <button class="btn" id="redBtn" type="button" aria-pressed="false" title="Palette rouge pour garder la vision nocturne">Mode rouge</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Vues">
+    <a href="#ce-soir" data-view="ce-soir">Ce soir</a>
+    <a href="#cible" data-view="cible">Cible</a>
+    <a href="#nuits" data-view="nuits">Meilleures nuits</a>
+    <a href="#materiel" data-view="materiel">Matériel et lieu</a>
+  </nav>
+
+  <div class="nightbar" id="nightbar"></div>
+
+  <!-- CE SOIR -->
+  <section class="view" id="v-ce-soir">
+    <div class="toolbar">
+      <h2 style="margin-right:auto">Les meilleures cibles de la soirée</h2>
+      <div class="chips" id="typeChips" role="group" aria-label="Type d'objet"></div>
+    </div>
+    <div class="toolbar"><div class="chips" id="rigChips" role="group" aria-label="Instrument"></div></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Objet</th><th>Type</th><th class="num">Taille</th><th>Fenêtre utile</th><th class="num">Durée</th><th class="num">Culmine</th><th>Lune</th><th>Meilleur instrument</th></tr></thead>
+      <tbody id="tonightBody"></tbody>
+    </table></div>
+    <p class="note" id="tonightNote"></p>
+  </section>
+
+  <!-- CIBLE -->
+  <section class="view" id="v-cible" hidden>
+    <div class="toolbar">
+      <div class="search"><input id="q" type="search" autocomplete="off" placeholder="M 31, NGC 7000, Cœur, Sh2-129…" aria-label="Chercher une cible"><div class="sugg" id="sugg" hidden></div></div>
+    </div>
+    <div id="targetPane"></div>
+  </section>
+
+  <!-- NUITS -->
+  <section class="view" id="v-nuits" hidden>
+    <div class="toolbar"><h2 style="margin-right:auto" id="nightsTitle">Meilleures nuits</h2>
+      <div class="field"><label for="nightsSpan">Période</label><select id="nightsSpan"><option value="14">14 nuits</option><option value="30" selected>30 nuits</option><option value="60">60 nuits</option></select></div></div>
+    <div id="nightsPane"></div>
+  </section>
+
+  <!-- MATERIEL -->
+  <section class="view" id="v-materiel" hidden>
+    <h2>Lieu et ciel</h2>
+    <div class="settings" style="margin-top:10px">
+      <div class="field"><label for="lat">Latitude (nord +)</label><input id="lat" type="number" step="0.0001" inputmode="decimal"></div>
+      <div class="field"><label for="lon">Longitude (est +)</label><input id="lon" type="number" step="0.0001" inputmode="decimal"></div>
+      <div class="field"><label for="siteName">Nom du lieu</label><input id="siteName" type="text"></div>
+      <div class="field"><label for="bortle">Ciel (échelle de Bortle)</label><select id="bortle"></select></div>
+      <div class="field"><label for="seeing">Turbulence habituelle (FWHM)</label><select id="seeing"><option value="2">2″ (très bon)</option><option value="2.5">2,5″</option><option value="3">3″ (moyen)</option><option value="4">4″ (mauvais)</option></select></div>
+      <div class="field"><label for="dwarfEq">Dwarf 3</label><select id="dwarfEq"><option value="0">Mode alt-azimutal</option><option value="1">Mode équatorial</option></select></div>
+    </div>
+    <p class="note" style="margin-top:8px">La pollution lumineuse fixe la durée des poses et le temps total conseillés. Saint-Mitre est entre l'étang de Berre et les lumières de Martigues et Fos : Bortle 5 est une estimation, à ajuster avec une mesure SQM ou la carte <a href="https://www.lightpollutionmap.info" target="_blank" rel="noopener">lightpollutionmap.info</a>.</p>
+    <h2 style="margin-top:22px">Instruments</h2>
+    <p class="note">Décochez ceux que vous n'emportez pas : les conseils ne proposeront que les autres.</p>
+    <div class="gear" id="gearList"></div>
+    <p><span class="saved" id="savedMsg" hidden>Réglages enregistrés</span></p>
+  </section>
+
+  <footer>
+    Positions calculées pour la date (précession), Lune et Soleil à quelques minutes d'arc près. Les poses et temps totaux sont des ordres de grandeur pour votre ciel, à affiner avec l'expérience. Catalogue NGC/IC et Messier : <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> de Mattia Verga (CC BY-SA 4.0) ; nébuleuses Sharpless : coordonnées approchées.
+    Météo : <a id="wxLink" href="https://clearoutside.com/forecast/43.46/5.02" target="_blank" rel="noopener">Clear Outside pour votre lieu</a>.
+  </footer>
+</div>
+
+<script>
+"use strict";
+const CATALOG = [["IC 10","","G",0.3382,59.304,6.76,6.03,10.35,24.53,"",0],["IC 59","","RfN",0.9579,61.144,10.0,5.0,null,null,"",0],["IC 63","","HII",0.9913,60.912,10.0,3.0,13.33,null,"IC 63 (Fantôme de Cassiopée)",0],["IC 341","","Neb",3.6821,21.96,134.9,null,null,null,"",0],["IC 342","","G",3.7801,68.096,19.77,18.79,9.68,24.85,"",0],["IC 348","","Cl+N",3.7428,32.163,10.0,10.0,null,null,"omi Per Cloud",0],["IC 349","","RfN",3.7723,23.94,25.7,null,null,null,"Barnard's Merope Nebula",0],["IC 353","","Neb",3.8836,25.848,181.97,30.2,null,null,"",0],["IC 354","","Neb",3.8994,23.147,128.82,null,null,null,"",0],["IC 356","","G",4.1297,69.812,4.02,3.73,10.24,23.27,"",0],["IC 359A","","RfN",4.3114,28.29,15.0,10.0,null,null,"",0],["IC 360","","Neb",4.1507,26.131,180.0,100.0,null,null,"",0],["IC 405","","Neb",5.2749,34.356,50.0,30.0,10.0,null,"Nébuleuse de l'Étoile flamboyante",0],["IC 410","","Neb",5.3783,33.367,40.0,30.0,null,null,"Nébuleuse des Têtards",0],["IC 417","","HII",5.4683,34.424,13.0,10.0,null,null,"",0],["IC 420","","Neb",5.536,-4.505,6.03,null,null,null,"",0],["IC 423","","Neb",5.5561,-0.614,6.0,3.5,null,null,"",0],["IC 426","","Neb",5.6087,-0.298,10.0,3.0,null,null,"",0],["IC 430","","Neb",5.6433,-7.083,10.96,null,14.4,null,"",0],["IC 431","","RfN",5.6706,-1.463,8.0,5.0,null,null,"",0],["IC 432","","RfN",5.6822,-1.507,10.0,10.0,null,null,"",0],["IC 434","","HII",5.6836,-2.454,90.0,30.0,11.0,null,"Tête de Cheval (IC 434)",0],["IC 443","","SNR",6.2771,22.532,50.0,40.0,12.0,null,"Nébuleuse de la Méduse",0],["IC 444","","RfN",6.3094,23.313,8.0,4.0,7.03,null,"",0],["IC 446","","Cl+N",6.5184,10.459,5.0,4.0,null,null,"",0],["IC 447","","HII",6.5168,9.897,25.0,20.0,7.7,null,"",0],["IC 448","","HII",6.5459,7.389,15.0,10.0,null,null,"",0],["IC 1274","","HII",18.1642,-23.648,20.0,5.0,null,null,"",0],["IC 1283","","HII",18.288,-19.762,15.0,15.0,null,null,"",0],["IC 1284","","Neb",18.2943,-19.672,16.98,15.14,7.7,null,"",0],["IC 1287","","RfN",18.5238,-10.796,20.0,10.0,6.1,null,"",0],["IC 1310","","Cl+N",20.1669,34.969,15.0,3.0,null,null,"",0],["IC 1340","","SNR",20.9356,31.048,25.12,19.95,null,null,"",0],["IC 1396","","Cl+N",21.6493,57.489,14.0,4.0,null,null,"Trompe d'éléphant (IC 1396)",0],["IC 1459","","G",22.9529,-36.462,4.61,3.23,10.54,23.12,"",0],["IC 1590","","Cl+N",0.8806,56.643,6.3,null,null,null,"",0],["IC 1613","","G",1.0799,2.118,18.32,17.14,9.54,25.0,"",0],["IC 1795","","HII",2.4422,62.042,12.0,12.0,null,null,"",0],["IC 1805","","Cl+N",2.5449,61.457,60.0,60.0,6.5,null,"Nébuleuse du Cœur",0],["IC 1831","","Neb",2.7323,62.412,120.23,null,null,null,"",0],["IC 1848","","Cl+N",2.8529,60.402,40.0,10.0,6.5,null,"Nébuleuse de l'Âme",0],["IC 1871","","HII",2.9561,60.672,4.0,4.0,null,null,"",0],["IC 2087","","Neb",4.6667,25.742,4.0,4.0,null,null,"",0],["IC 2162","","HII",6.218,17.98,4.0,4.0,null,null,"",0],["IC 2177","","RfN",7.0769,-10.471,20.0,20.0,null,null,"",0],["IC 2574","","G",10.4732,68.412,12.91,5.57,10.46,24.38,"Coddington's Nebula",0],["IC 4296","","G",13.6108,-33.966,4.62,2.43,10.51,23.73,"",0],["IC 4329","","G",13.8181,-30.296,4.74,2.65,10.97,24.33,"",0],["IC 4591","","HII",16.205,-27.928,12.0,10.0,null,null,"",0],["IC 4592","","RfN",16.1996,-19.455,60.0,40.0,3.9,null,"",0],["IC 4593","","PN",16.1957,12.071,0.66,null,10.7,null,"",0],["IC 4601","","Neb",16.3383,-20.087,20.0,10.0,null,null,"",0],["IC 4603","","Neb",16.4235,-24.468,20.0,5.0,null,null,"",0],["IC 4604","","Neb",16.4253,-23.437,60.0,25.0,5.1,null,"rho Oph Nebula",0],["IC 4605","","Neb",16.5035,-25.115,30.0,15.0,4.7,null,"",0],["IC 4665","","OCl",17.7742,5.649,24.6,null,4.2,null,"",0],["IC 4685","","Neb",18.1549,-23.987,15.0,10.0,null,null,"",0],["IC 4701","","Neb",18.2766,-16.648,60.0,40.0,null,null,"",0],["IC 4703","","Neb",18.3156,-13.845,5.05,5.05,6.0,null,"Eagle Nebula",0],["M 24","IC 4715","*Ass",18.2823,-18.515,120.0,60.0,4.5,null,"Small Sgr Star Cloud",0],["M 25","IC 4725","OCl",18.5297,-19.115,14.1,null,4.6,null,"",0],["IC 4756","","OCl",18.6476,5.462,24.0,null,4.6,null,"",0],["IC 4812","","Neb",19.0177,-37.06,10.0,6.92,null,null,"",0],["IC 5068","","HII",20.8416,42.478,40.0,30.0,null,null,"",0],["IC 5070","","HII",20.8502,44.401,60.0,50.0,8.0,null,"Nébuleuse du Pélican",0],["IC 5076","","RfN",20.926,47.396,7.0,7.0,null,null,"",0],["IC 5134","","Neb",21.7163,66.103,7.59,null,null,null,"",0],["IC 5146","","Cl+N",21.8913,47.267,10.0,10.0,7.2,null,"Nébuleuse du Cocon",0],["IC 5148","","PN",21.9931,-39.386,2.3,null,11.0,null,"",0],["IC 5332","","G",23.5743,-36.101,6.07,5.77,10.03,23.92,"",0],["NGC 40","","PN",0.217,72.522,0.8,null,11.89,null,"Bow-Tie nebula",0],["NGC 45","","G",0.2344,-23.182,6.18,4.44,10.44,23.8,"",0],["NGC 55","","G",0.2482,-39.197,29.85,3.05,8.54,22.52,"",0],["NGC 134","","G",0.5061,-33.244,8.38,1.79,10.31,23.4,"",0],["NGC 147","","G",0.5534,48.509,9.4,5.41,9.72,24.29,"",0],["NGC 185","","G",0.6494,48.337,12.94,10.76,9.2,24.58,"",0],["M 110","NGC 205","G",0.6728,41.685,16.22,9.59,8.15,23.78,"",0],["M 32","NGC 221","G",0.7116,40.865,7.74,4.86,8.13,22.17,"",0],["M 31","NGC 224","G",0.7123,41.269,177.83,69.66,3.44,23.63,"Galaxie d'Andromède",0],["NGC 246","","PN",0.7843,-11.872,4.08,null,10.9,null,"",0],["NGC 247","","G",0.7857,-20.76,19.68,5.55,9.21,23.79,"",0],["NGC 281","","HII",0.8832,56.622,35.0,30.0,null,null,"Nébuleuse Pac-Man",0],["NGC 288","","GCl",0.8798,-26.59,9.6,null,8.13,null,"",0],["NGC 300","","G",0.9149,-37.684,19.41,13.06,8.66,23.59,"",0],["NGC 488","","G",1.363,5.257,5.05,3.66,10.26,23.15,"",0],["M 103","NGC 581","OCl",1.5561,60.658,4.5,null,7.4,null,"M 103",0],["M 33","NGC 598","G",1.5641,30.66,62.09,36.73,5.79,23.61,"Galaxie du Triangle",0],["NGC 613","","G",1.5717,-29.418,5.48,4.51,10.35,23.02,"",0],["M 74","NGC 628","G",1.6116,15.784,9.89,9.33,9.31,23.37,"Galaxie Fantôme",0],["M 76","NGC 650","PN",1.7055,51.575,1.12,null,10.1,null,"Petite Haltère",0],["NGC 672","","G",1.7985,27.433,7.01,2.71,10.92,23.58,"",0],["NGC 720","","G",1.8835,-13.739,4.49,2.37,10.14,23.23,"",0],["NGC 752","","OCl",1.9597,37.833,39.0,null,5.7,null,"",0],["NGC 772","","G",1.9888,19.008,4.57,2.52,10.3,22.32,"",0],["NGC 869","","OCl",2.3163,57.117,14.4,null,3.7,null,"Double amas de Persée (h)",0],["NGC 884","","OCl",2.3756,57.144,10.5,null,3.8,null,"Double amas de Persée (χ)",0],["NGC 891","","G",2.3759,42.349,13.03,3.03,10.01,24.17,"NGC 891 (galaxie par la tranche)",0],["NGC 896","","Neb",2.4244,62.019,10.0,10.0,null,null,"",0],["NGC 908","","G",2.3846,-21.234,6.14,2.82,10.31,22.86,"",0],["NGC 925","","G",2.4547,33.579,10.72,5.75,10.12,23.94,"",0],["NGC 936","","G",2.4604,-1.156,4.44,3.18,10.23,23.14,"",0],["NGC 1023","","G",2.6733,39.063,7.4,3.06,9.47,22.59,"",0],["M 34","NGC 1039","OCl",2.7021,42.746,22.5,null,5.2,null,"",0],["NGC 1055","","G",2.6959,0.443,6.92,3.53,10.6,23.87,"",0],["M 77","NGC 1068","G",2.7113,-0.013,6.11,5.61,9.29,22.35,"",0],["NGC 1097","","G",2.772,-30.275,10.57,6.44,9.76,23.63,"",0],["NGC 1187","","G",3.0438,-22.867,4.14,3.02,10.92,22.93,"",0],["NGC 1232","","G",3.1626,-20.579,6.79,5.77,10.11,23.33,"",0],["NGC 1300","","G",3.3281,-19.411,5.96,3.06,10.52,23.3,"",0],["NGC 1302","","G",3.3309,-26.06,4.27,3.9,10.63,23.46,"",0],["NGC 1316","","G",3.3783,-37.208,13.46,7.71,8.48,23.77,"Fornax A",0],["NGC 1326","","G",3.399,-36.465,4.28,2.93,10.45,23.26,"",0],["NGC 1332","","G",3.4381,-21.335,5.31,3.84,10.36,23.55,"",0],["NGC 1333","","Cl+N",3.482,31.37,19.5,null,10.9,null,"",0],["NGC 1340","","G",3.4721,-31.068,5.12,3.12,10.37,23.6,"",0],["NGC 1350","","G",3.5189,-33.629,5.18,2.6,10.31,23.06,"",0],["NGC 1360","","PN",3.5541,-25.872,6.42,null,9.4,null,"",0],["NGC 1365","","G",3.5601,-36.14,12.02,6.14,10.1,24.01,"",0],["NGC 1367","","G",3.5837,-24.933,4.88,3.26,10.66,23.57,"",0],["NGC 1380","","G",3.6077,-34.976,4.58,2.22,9.94,22.9,"",0],["NGC 1395","","G",3.6416,-23.028,4.71,3.97,9.65,22.83,"",0],["NGC 1398","","G",3.6478,-26.338,6.95,4.91,9.55,23.28,"",0],["NGC 1399","","G",3.6414,-35.451,8.51,7.69,9.4,23.95,"",0],["NGC 1404","","G",3.6478,-35.594,5.01,4.38,9.93,23.26,"",0],["NGC 1407","","G",3.67,-18.58,5.73,5.27,9.65,23.36,"",0],["NGC 1425","","G",3.7032,-29.893,4.91,2.15,10.7,22.92,"",0],["NGC 1427","","G",3.7054,-35.393,4.33,2.87,10.88,23.8,"",0],["NGC 1432","","HII",3.7638,24.368,60.0,40.0,null,null,"Maia Nebula",0],["NGC 1435","","Neb",3.7695,23.765,30.0,30.0,null,null,"Merope Nebula",0],["NGC 1491","","HII",4.0538,51.316,9.0,6.0,null,null,"",0],["NGC 1499","","Neb",4.054,36.367,160.0,40.0,5.0,null,"Nébuleuse California",0],["NGC 1501","","PN",4.1165,60.921,0.87,null,11.5,null,"",0],["NGC 1502","","OCl",4.1304,62.332,10.2,null,6.9,null,"",0],["NGC 1514","","PN",4.1547,30.776,2.2,null,10.19,null,"",0],["NGC 1532","","G",4.2012,-32.874,11.27,3.09,10.13,23.78,"",0],["NGC 1535","","PN",4.2377,-12.739,0.85,null,9.6,null,"",0],["NGC 1537","","G",4.228,-31.645,4.35,2.76,10.72,23.5,"",0],["NGC 1579","","Cl+N",4.5038,35.269,10.2,null,null,null,"",0],["NGC 1647","","OCl",4.7654,19.095,27.0,null,6.4,null,"",0],["NGC 1662","","OCl",4.808,10.93,13.8,null,6.4,null,"",0],["NGC 1746","","OCl",5.0639,23.768,18.0,null,6.1,null,"",0],["NGC 1792","","G",5.0873,-37.981,5.52,2.76,10.16,22.68,"",0],["NGC 1808","","G",5.1284,-37.513,5.42,1.83,10.21,22.74,"",0],["M 79","NGC 1904","GCl",5.4029,-24.524,7.2,null,8.16,null,"",0],["NGC 1909","","RfN",5.0821,-7.266,180.0,60.0,null,null,"the Witch Head Nebula",0],["M 38","NGC 1912","OCl",5.4785,35.855,9.6,null,6.4,null,"M 38",0],["NGC 1931","","Cl+N",5.5237,34.247,4.8,null,10.1,null,"",0],["M 1","NGC 1952","SNR",5.5755,22.014,8.0,4.0,8.4,null,"Nébuleuse du Crabe",0],["M 36","NGC 1960","OCl",5.6049,34.141,7.2,null,6.0,null,"M 36",0],["NGC 1964","","G",5.556,-21.946,5.16,2.33,10.91,23.25,"",0],["NGC 1973","","Neb",5.5847,-4.732,5.0,5.0,7.0,null,"",0],["NGC 1975","","Neb",5.5883,-4.685,10.0,5.0,7.0,null,"",0],["M 42","NGC 1976","Cl+N",5.5879,-5.39,90.0,60.0,4.0,null,"Grande nébuleuse d'Orion",0],["NGC 1977","","Cl+N",5.5877,-4.844,10.2,null,null,null,"Nébuleuse de l'Homme qui court",0],["NGC 1980","","Cl+N",5.5906,-5.91,9.3,null,2.5,null,"Lower Sword",0],["NGC 1981","","Cl+N",5.586,-4.425,9.0,null,4.2,null,"Upper Sword",0],["M 43","NGC 1982","HII",5.592,-5.267,20.0,15.0,9.0,null,"Nébuleuse de De Mairan",0],["NGC 2023","","RfN",5.694,-2.259,10.0,8.0,null,null,"",0],["NGC 2024","","Neb",5.6952,-1.856,30.0,30.0,null,null,"Nébuleuse de la Flamme",0],["NGC 2064","","RfN",5.7718,0.006,10.0,10.0,null,null,"",0],["NGC 2067","","RfN",5.7755,0.131,8.0,3.0,null,null,"",0],["M 78","NGC 2068","RfN",5.7794,0.079,4.5,null,8.0,null,"M 78",0],["NGC 2071","","Cl+N",5.7854,0.294,7.0,5.0,8.0,null,"",0],["NGC 2090","","G",5.7839,-34.251,4.47,1.67,10.92,22.69,"",0],["M 37","NGC 2099","OCl",5.8718,32.553,11.4,null,5.6,null,"M 37",0],["NGC 2146","","G",6.3105,78.357,5.31,4.32,10.69,22.76,"",0],["M 35","NGC 2168","OCl",6.1514,24.339,24.0,null,null,null,"M 35",0],["NGC 2174","","Neb",6.1566,20.66,40.0,30.0,null,null,"Nébuleuse de la Tête de singe",0],["NGC 2175","","Cl+N",6.161,20.488,5.4,null,6.8,null,"",0],["NGC 2183","","HII",6.1797,-6.212,12.0,null,15.15,null,"",0],["NGC 2217","","G",6.361,-27.234,4.63,4.12,10.57,23.69,"",0],["NGC 2237","","Neb",6.5152,5.049,80.0,50.0,null,null,"Nébuleuse de la Rosette",0],["NGC 2238","","HII",6.5112,5.013,80.0,60.0,6.0,null,"Rosette Nebula",0],["NGC 2239","","Cl+N",6.5321,4.943,9.3,null,4.8,null,"",0],["NGC 2246","","Neb",6.5427,5.128,10.0,10.0,null,null,"Rosette B",0],["NGC 2264","","Cl+N",6.6828,9.895,11.4,null,3.9,null,"Amas du Sapin et nébuleuse du Cône",0],["NGC 2281","","OCl",6.805,41.079,10.8,null,5.4,null,"",0],["M 41","NGC 2287","OCl",6.7667,-20.754,12.0,null,4.5,null,"",0],["NGC 2301","","OCl",6.8626,0.459,10.2,null,6.0,null,"Great Bird Cluster",0],["NGC 2316","","Neb",6.9947,-7.778,4.0,3.0,null,null,"",0],["M 50","NGC 2323","OCl",7.0446,-8.364,14.1,null,5.9,null,"",0],["NGC 2336","","G",7.4511,80.178,5.01,2.81,10.68,22.98,"",0],["NGC 2346","","PN",7.1564,-0.809,0.87,null,11.6,null,"",0],["NGC 2359","","HII",7.3086,-13.227,10.0,5.0,null,null,"Casque de Thor",0],["NGC 2371","","PN",7.4263,29.491,2.2,0.96,11.2,null,"",0],["NGC 2392","","PN",7.4863,20.912,0.86,null,9.61,null,"Eskimo Nebula",0],["NGC 2403","","G",7.6143,65.603,19.95,10.07,8.43,23.48,"",0],["M 47","NGC 2422","OCl",7.6097,-14.483,19.8,null,4.4,null,"",0],["NGC 2423","","OCl",7.6185,-13.872,11.7,null,6.7,null,"",0],["M 46","NGC 2437","OCl",7.6963,-14.81,21.0,null,6.1,null,"",0],["NGC 2438","","PN",7.6973,-14.736,1.07,null,10.8,null,"",0],["M 93","NGC 2447","OCl",7.7415,-23.853,15.0,null,6.2,null,"",0],["NGC 2467","","Cl+N",7.8732,-26.443,4.2,null,null,null,"",0],["NGC 2477","","OCl",7.8694,-38.533,18.6,null,5.8,null,"",0],["NGC 2539","","OCl",8.1769,-12.821,12.3,null,6.5,null,"",0],["NGC 2546","","OCl",8.2043,-37.594,16.5,null,6.3,null,"",0],["M 48","NGC 2548","OCl",8.2287,-5.75,28.2,null,5.8,null,"",0],["NGC 2613","","G",8.5563,-22.974,7.62,1.79,10.38,23.28,"",0],["M 44","NGC 2632","OCl",8.6728,19.672,108.6,null,3.1,null,"Amas de la Crèche",0],["M 67","NGC 2682","OCl",8.8556,11.812,33.0,null,6.9,null,"",0],["NGC 2683","","G",8.8781,33.422,9.48,2.7,9.69,22.76,"",0],["NGC 2768","","G",9.1937,60.037,5.64,2.24,9.87,23.38,"",0],["NGC 2775","","G",9.1723,7.038,4.25,3.36,10.24,22.88,"",0],["NGC 2784","","G",9.2054,-24.173,4.82,1.85,10.1,23.34,"",0],["NGC 2818","","PN",9.2671,-36.627,0.83,null,11.6,null,"",0],["NGC 2818A","","Cl+N",9.2684,-36.627,6.9,null,12.5,null,"",0],["NGC 2835","","G",9.298,-22.355,6.43,3.72,10.64,23.39,"",0],["NGC 2841","","G",9.3674,50.977,6.9,3.31,10.18,22.48,"",0],["NGC 2903","","G",9.5361,21.501,11.94,5.28,8.91,23.02,"",0],["NGC 2976","","G",9.7876,67.916,5.77,3.01,10.16,22.81,"",0],["NGC 2986","","G",9.7378,-21.278,4.81,3.85,10.64,23.96,"",0],["NGC 2997","","G",9.7608,-31.191,10.26,6.21,9.41,23.42,"",0],["M 81","NGC 3031","G",9.9259,69.065,21.63,11.25,6.92,22.78,"Galaxie de Bode",0],["M 82","NGC 3034","G",9.9313,69.679,10.99,5.11,8.3,22.22,"Galaxie du Cigare",0],["NGC 3077","","G",10.0553,68.734,5.21,4.32,9.88,22.8,"",0],["NGC 3079","","G",10.0327,55.68,8.18,1.29,10.71,23.17,"",0],["NGC 3109","","G",10.0519,-26.16,16.0,2.74,10.54,23.59,"",0],["NGC 3115","","G",10.0872,-7.719,7.1,3.01,9.09,23.02,"Spindle Galaxy",0],["NGC 3166","","G",10.2293,3.425,4.5,2.84,10.62,23.27,"",0],["NGC 3169","","G",10.2375,3.466,4.34,2.65,10.89,22.93,"",0],["NGC 3184","","G",10.3047,41.424,7.4,7.18,9.84,23.47,"",0],["NGC 3198","","G",10.3319,45.55,6.46,1.84,10.38,22.68,"",0],["NGC 3223","","G",10.3597,-34.267,4.28,2.79,10.96,23.36,"",0],["NGC 3344","","G",10.7253,24.922,6.7,6.37,9.98,23.33,"",0],["M 95","NGC 3351","G",10.7327,11.704,7.23,4.45,9.77,23.26,"",0],["NGC 3359","","G",10.7769,63.224,4.07,2.83,10.55,22.55,"",0],["M 96","NGC 3368","G",10.7794,11.82,8.26,5.51,9.21,23.14,"",0],["M 105","NGC 3379","G",10.7971,12.582,4.89,4.25,9.27,22.54,"",0],["NGC 3384","","G",10.8047,12.629,5.24,2.37,9.96,23.17,"",0],["NGC 3486","","G",11.0066,28.975,5.82,4.12,10.57,23.35,"",0],["NGC 3521","","G",11.0968,-0.036,8.32,4.47,9.11,22.75,"",0],["M 108","NGC 3556","G",11.1919,55.674,3.98,1.66,10.05,21.7,"",0],["NGC 3557","","G",11.166,-37.539,4.36,3.43,10.42,23.46,"",0],["NGC 3585","","G",11.2214,-26.755,6.61,3.27,9.69,23.74,"",0],["M 97","NGC 3587","PN",11.2466,55.019,3.58,null,9.9,null,"Nébuleuse du Hibou",0],["NGC 3593","","G",11.2436,12.818,4.69,1.85,10.91,23.82,"",0],["NGC 3607","","G",11.2818,18.052,4.59,4.03,10.0,22.99,"",0],["NGC 3621","","G",11.3046,-32.814,9.79,4.03,9.55,23.03,"",0],["M 65","NGC 3623","G",11.3155,13.092,7.64,1.97,9.32,22.73,"",0],["M 66","NGC 3627","G",11.3375,12.992,10.28,4.61,8.92,22.96,"",0],["NGC 3628","","G",11.338,13.59,11.04,3.44,9.45,23.13,"",0],["NGC 3640","","G",11.3519,3.235,4.33,3.81,10.41,23.38,"",0],["NGC 3665","","G",11.4121,38.763,4.06,3.0,10.83,23.55,"",0],["NGC 3675","","G",11.4357,43.586,5.9,3.27,10.09,23.13,"",0],["NGC 3705","","G",11.5021,9.277,4.31,1.74,10.97,23.09,"",0],["NGC 3718","","G",11.543,53.068,4.7,2.34,10.7,23.29,"",0],["NGC 3726","","G",11.5559,47.029,5.27,3.54,10.49,22.7,"",0],["NGC 3877","","G",11.7688,47.494,5.36,1.23,11.0,23.01,"",0],["NGC 3923","","G",11.8505,-28.806,6.89,4.55,9.6,23.8,"",0],["NGC 3945","","G",11.8871,60.676,5.55,3.29,10.75,24.12,"",0],["NGC 3953","","G",11.8969,52.327,6.14,3.13,10.1,22.64,"",0],["NGC 3962","","G",11.9111,-13.975,4.17,3.0,10.65,23.56,"",0],["M 109","NGC 3992","G",11.96,53.375,8.07,5.64,9.88,23.45,"",0],["NGC 4026","","G",11.9903,50.962,4.41,0.87,10.78,23.54,"",0],["NGC 4036","","G",12.0241,61.896,4.85,2.08,10.84,23.66,"",0],["NGC 4038","","G",12.0314,-18.868,5.42,3.78,10.2,22.94,"Antennae Galaxies",0],["NGC 4088","","G",12.0928,50.539,7.01,2.65,10.6,23.45,"",0],["NGC 4096","","G",12.1003,47.478,5.65,1.43,10.57,22.48,"",0],["NGC 4105","","G",12.1113,-29.76,4.33,3.41,10.62,23.61,"",0],["NGC 4125","","G",12.135,65.174,5.87,4.58,9.71,23.34,"",0],["NGC 4179","","G",12.2145,1.3,4.48,1.22,10.93,23.76,"",0],["M 98","NGC 4192","G",12.2301,14.9,11.04,2.66,10.84,23.89,"",0],["NGC 4214","","G",12.2609,36.327,6.79,5.28,9.77,22.88,"",0],["NGC 4216","","G",12.2651,13.149,7.82,1.84,9.93,23.12,"",0],["NGC 4236","","G",12.2784,69.463,23.5,6.85,9.77,24.58,"",0],["NGC 4244","","G",12.2916,37.807,16.22,7.24,10.18,24.57,"",0],["M 99","NGC 4254","G",12.3138,14.417,5.04,4.74,9.84,22.6,"Coma Pinwheel",0],["M 106","NGC 4258","G",12.316,47.304,16.98,7.24,9.29,23.36,"M 106",0],["NGC 4293","","G",12.3536,18.382,6.24,3.72,10.17,23.61,"",0],["M 61","NGC 4303","G",12.3652,4.474,6.89,6.56,10.25,23.05,"",0],["M 100","NGC 4321","G",12.3819,15.822,6.1,5.62,9.47,22.61,"",0],["NGC 4361","","PN",12.4085,-18.785,1.05,null,10.9,null,"",0],["NGC 4365","","G",12.4079,7.318,5.12,3.66,9.43,22.9,"",0],["M 84","NGC 4374","G",12.4177,12.887,7.41,6.44,9.79,23.23,"",0],["M 85","NGC 4382","G",12.4234,18.192,6.95,5.35,9.05,22.87,"",0],["NGC 4395","","G",12.4302,33.547,4.17,1.39,10.29,21.71,"",0],["M 86","NGC 4406","G",12.4366,12.946,11.53,8.43,8.86,23.9,"",0],["NGC 4429","","G",12.4574,11.108,5.3,2.42,10.08,23.17,"",0],["NGC 4438","","G",12.4627,13.009,9.16,4.02,10.92,24.21,"Eyes",0],["NGC 4442","","G",12.4677,9.804,4.32,1.61,10.6,23.18,"",0],["NGC 4449","","G",12.4697,44.094,4.66,2.71,9.64,21.1,"",0],["NGC 4450","","G",12.4749,17.085,5.46,3.78,10.87,22.99,"",0],["NGC 4459","","G",12.4833,13.978,4.17,3.16,10.25,23.13,"",0],["M 49","NGC 4472","G",12.4963,8.0,10.21,8.38,8.28,23.25,"",0],["NGC 4473","","G",12.4969,13.429,4.27,2.51,10.09,23.03,"",0],["M 87","NGC 4486","G",12.5137,12.391,7.11,6.67,9.0,22.79,"Virgo Galaxy",0],["NGC 4490","","G",12.5101,41.644,6.71,1.65,9.72,21.43,"Cocoon Galaxy",0],["NGC 4494","","G",12.5234,25.775,4.35,4.13,9.8,22.75,"",0],["M 88","NGC 4501","G",12.5331,14.42,8.65,4.38,10.33,23.17,"",0],["NGC 4517","","G",12.546,0.115,9.02,1.42,10.48,23.18,"",0],["NGC 4526","","G",12.5675,7.7,9.64,3.32,9.59,23.43,"",0],["NGC 4527","","G",12.569,2.654,6.3,1.72,10.5,23.1,"",0],["NGC 4535","","G",12.5723,8.198,8.15,7.48,9.89,23.79,"",0],["NGC 4536","","G",12.5742,2.188,7.08,2.55,10.48,23.26,"",0],["M 91","NGC 4548","G",12.5907,14.496,5.55,4.52,10.96,23.24,"",0],["M 89","NGC 4552","G",12.5944,12.556,8.13,8.0,10.08,24.11,"",0],["NGC 4559","","G",12.5993,27.96,10.57,4.82,9.92,23.48,"",0],["NGC 4565","","G",12.6058,25.988,16.75,2.89,10.86,23.75,"Galaxie de l'Aiguille",0],["NGC 4568","","G",12.6095,11.239,4.31,1.87,10.8,22.89,"Butterfly Galaxies",0],["M 90","NGC 4569","G",12.6138,13.163,9.12,3.82,9.54,23.16,"",0],["M 58","NGC 4579","G",12.6288,11.818,5.01,3.84,10.3,22.49,"",0],["M 68","NGC 4590","GCl",12.6578,-26.743,6.6,null,7.96,null,"",0],["M 104","NGC 4594","G",12.6665,-11.623,8.45,4.91,8.59,22.26,"Galaxie du Sombrero",0],["NGC 4605","","G",12.6665,61.609,5.87,2.29,10.26,22.63,"",0],["M 59","NGC 4621","G",12.7006,11.647,4.55,3.21,9.56,22.71,"",0],["NGC 4631","","G",12.7022,32.541,14.45,2.2,9.24,22.44,"Whale Galaxy",0],["NGC 4636","","G",12.7138,2.688,6.35,4.7,9.99,22.91,"",0],["M 60","NGC 4649","G",12.7278,11.553,6.78,5.45,8.79,22.81,"",0],["NGC 4654","","G",12.7324,13.127,4.72,2.49,10.49,22.65,"",0],["NGC 4656 NED01","","G",12.7327,32.17,6.46,0.66,10.47,20.62,"",0],["NGC 4664","","G",12.7517,3.056,4.52,4.52,10.5,23.13,"",0],["NGC 4666","","G",12.7524,-0.462,4.97,1.97,10.75,22.92,"",0],["NGC 4697","","G",12.81,-5.801,7.14,4.16,9.37,23.36,"",0],["NGC 4710","","G",12.8275,15.165,4.39,1.13,10.71,23.43,"",0],["NGC 4725","","G",12.8407,25.501,9.71,7.1,9.38,23.39,"",0],["M 94","NGC 4736","G",12.8481,41.12,7.74,6.68,8.24,21.79,"",0],["NGC 4753","","G",12.8728,-1.2,6.49,3.06,9.66,23.31,"",0],["NGC 4754","","G",12.8715,11.314,4.16,1.95,10.48,23.19,"",0],["NGC 4762","","G",12.8822,11.231,8.26,3.52,10.17,24.3,"",0],["M 64","NGC 4826","G",12.9455,21.683,10.52,5.33,8.52,22.68,"Galaxie de l'Œil noir",0],["NGC 4845","","G",12.967,1.576,5.5,1.2,10.97,23.46,"",0],["NGC 4856","","G",12.9892,-15.042,4.25,1.57,10.62,23.23,"",0],["NGC 4958","","G",13.0969,-8.02,4.79,1.2,10.59,23.53,"",0],["NGC 5005","","G",13.1823,37.059,4.82,1.52,10.71,21.82,"",0],["M 53","NGC 5024","GCl",13.2153,18.169,9.0,null,7.79,null,"",0],["NGC 5033","","G",13.2243,36.594,9.84,4.58,10.68,23.78,"",0],["NGC 5054","","G",13.2829,-16.635,5.04,2.9,10.79,23.45,"",0],["M 63","NGC 5055","G",13.2637,42.029,11.83,7.16,8.61,23.04,"Galaxie du Tournesol",0],["NGC 5068","","G",13.3152,-21.039,7.48,6.7,10.06,23.65,"",0],["NGC 5084","","G",13.338,-21.828,9.93,2.46,10.49,25.22,"",0],["NGC 5101","","G",13.3628,-27.431,5.9,5.52,10.46,24.15,"",0],["NGC 5102","","G",13.366,-36.63,9.71,3.71,9.88,23.87,"",0],["M 51","NGC 5194","G",13.498,47.195,13.71,11.67,8.36,22.9,"Galaxie du Tourbillon",0],["NGC 5195","","G",13.4999,47.266,5.5,4.36,9.58,22.84,"",0],["M 83","NGC 5236","G",13.6169,-29.865,13.61,13.21,7.21,22.2,"Southern Pinwheel Galaxy",0],["NGC 5247","","G",13.6342,-17.884,5.32,4.26,10.41,22.95,"",0],["NGC 5248","","G",13.6256,8.885,4.07,2.38,9.97,22.25,"",0],["NGC 5253","","G",13.6655,-31.64,5.01,2.12,10.28,22.28,"",0],["M 3","NGC 5272","GCl",13.7031,28.375,16.2,null,6.39,null,"M 3",0],["NGC 5322","","G",13.8209,60.191,5.62,3.49,10.14,23.64,"",0],["NGC 5363","","G",13.9353,5.255,4.17,2.75,10.21,22.82,"",0],["M 101","NGC 5457","G",14.0535,54.349,23.99,23.07,7.9,23.97,"Galaxie du Moulinet",0],["NGC 5566","","G",14.3389,3.934,5.36,2.08,10.51,23.3,"",0],["NGC 5746","","G",14.7489,1.955,7.24,1.08,10.55,23.19,"",0],["NGC 5813","","G",15.0198,1.702,4.13,2.7,10.53,23.45,"",0],["NGC 5846","","G",15.1081,1.606,4.27,4.05,10.18,23.12,"",0],["NGC 5866","","G",15.1082,55.763,6.31,2.72,9.89,23.4,"",0],["M 5","NGC 5904","GCl",15.3094,2.083,15.0,null,5.95,null,"M 5",0],["NGC 5907","","G",15.2649,56.329,11.3,1.75,10.37,23.6,"",0],["NGC 5986","","GCl",15.7676,-37.786,5.4,null,6.92,null,"",0],["NGC 6072","","PN",16.2162,-36.23,1.17,null,11.7,null,"",0],["M 80","NGC 6093","GCl",16.284,-22.975,5.7,null,7.3,null,"",0],["M 4","NGC 6121","GCl",16.3932,-26.526,28.2,null,5.4,null,"",0],["M 107","NGC 6171","GCl",16.5422,-13.054,7.8,null,null,null,"",0],["M 13","NGC 6205","GCl",16.6949,36.461,16.5,null,5.8,null,"Grand amas d'Hercule",0],["NGC 6210","","PN",16.7415,23.8,0.5,null,9.65,null,"",0],["M 12","NGC 6218","GCl",16.7874,-1.948,11.1,null,6.07,null,"",0],["NGC 6235","","GCl",16.8904,-22.177,4.2,null,7.2,null,"",0],["M 10","NGC 6254","GCl",16.9525,-4.099,9.3,null,4.98,null,"",0],["M 62","NGC 6266","GCl",17.0202,-30.112,7.8,null,null,null,"",0],["M 19","NGC 6273","GCl",17.0438,-26.268,7.5,null,5.57,null,"",0],["NGC 6281","","OCl",17.0781,-37.985,10.2,null,5.4,null,"",0],["NGC 6284","","GCl",17.0747,-24.764,6.6,null,7.43,null,"",0],["NGC 6302","","PN",17.2291,-37.103,0.74,null,9.6,null,"Bug Nebula",0],["M 9","NGC 6333","GCl",17.3199,-18.516,6.9,null,8.42,null,"",0],["NGC 6334","","SNR",17.3471,-36.103,8.4,null,null,null,"",0],["M 92","NGC 6341","GCl",17.2854,43.137,14.4,null,6.52,null,"M 92",0],["NGC 6356","","GCl",17.3931,-17.813,5.4,null,7.42,null,"",0],["NGC 6369","","PN",17.489,-23.759,0.63,null,11.4,null,"Little Ghost Nebula",0],["M 14","NGC 6402","GCl",17.6267,-3.246,9.9,null,5.73,null,"",0],["M 6","NGC 6405","OCl",17.6724,-32.254,15.6,null,4.2,null,"Butterfly Cluster",0],["NGC 6445","","PN",17.8209,-20.009,0.55,null,11.2,null,"Little Gem",0],["M 7","NGC 6475","OCl",17.8975,-34.793,22.2,null,3.3,null,"Ptolemy's Cluster",0],["M 23","NGC 6494","OCl",17.9513,-18.985,16.8,null,5.5,null,"",0],["NGC 6503","","G",17.824,70.144,5.94,1.98,10.12,22.55,"",0],["M 20","NGC 6514","Neb",18.045,-22.972,28.0,28.0,8.5,null,"Nébuleuse Trifide",0],["M 8","NGC 6523","Neb",18.0615,-24.38,45.0,30.0,5.8,null,"Nébuleuse de la Lagune",0],["NGC 6526","","Neb",18.0684,-24.442,40.0,40.0,null,null,"",0],["NGC 6530","","Cl+N",18.0753,-24.358,6.0,null,4.6,null,"",0],["M 21","NGC 6531","OCl",18.0704,-22.49,6.0,null,5.9,null,"",0],["NGC 6543","","PN",17.9759,66.633,0.9,null,9.01,null,"Nébuleuse de l'Œil de chat",0],["NGC 6559","","Neb",18.1658,-24.106,15.0,10.0,null,null,"",0],["NGC 6563","","PN",18.2007,-33.868,0.79,null,11.0,null,"",0],["NGC 6589","","Neb",18.282,-19.777,4.0,3.0,10.5,null,"",0],["NGC 6590","","RfN",18.2847,-19.866,4.0,3.0,9.8,null,"",0],["M 16","NGC 6611","Neb",18.3134,-13.807,120.0,25.0,6.0,null,"Nébuleuse de l'Aigle",0],["M 18","NGC 6613","OCl",18.3329,-17.102,6.0,null,6.9,null,"",0],["M 17","NGC 6618","Neb",18.3464,-16.172,12.6,null,7.0,null,"Nébuleuse Oméga",0],["M 28","NGC 6626","GCl",18.4091,-24.87,5.1,null,6.9,null,"",0],["NGC 6633","","OCl",18.4542,6.508,12.0,null,4.6,null,"",0],["M 69","NGC 6637","GCl",18.5231,-32.348,5.7,null,null,null,"",0],["M 22","NGC 6656","GCl",18.6067,-23.903,12.6,null,null,null,"",0],["M 70","NGC 6681","GCl",18.7202,-32.292,6.6,null,null,null,"",0],["M 26","NGC 6694","OCl",18.7552,-9.384,6.0,null,8.87,null,"",0],["M 11","NGC 6705","OCl",18.8517,-6.27,9.0,null,5.8,null,"Amas du Canard sauvage",0],["M 54","NGC 6715","GCl",18.9176,-30.478,5.1,null,7.7,null,"",0],["M 57","NGC 6720","PN",18.8931,33.029,1.27,null,8.8,null,"Nébuleuse de l'Anneau",0],["NGC 6726","","RfN",19.0276,-36.891,9.0,7.0,null,null,"",0],["NGC 6727","","RfN",19.0284,-36.876,80.0,80.0,null,null,"",0],["NGC 6729","","Neb",19.0321,-36.958,25.0,20.0,null,null,"",0],["M 56","NGC 6779","GCl",19.2765,30.184,5.8,null,8.4,null,"M 56",0],["NGC 6781","","PN",19.3079,6.54,1.8,null,11.4,null,"",0],["NGC 6804","","PN",19.5265,9.225,0.58,null,12.0,null,"",0],["M 55","NGC 6809","GCl",19.6665,-30.962,12.0,null,6.49,null,"",0],["NGC 6818","","PN",19.7327,-14.153,0.77,null,9.3,null,"Little Gem Nebula",0],["NGC 6822","","G",19.7494,-14.803,17.38,16.75,10.05,24.25,"Barnard's Galaxy",0],["NGC 6823","","Cl+N",19.7194,23.3,6.0,null,7.1,null,"",0],["M 71","NGC 6838","GCl",19.8961,18.778,6.9,null,null,null,"M 71",0],["NGC 6847","","Cl+N",19.9438,30.213,10.0,10.0,null,null,"",0],["M 27","NGC 6853","PN",19.9934,22.721,6.7,null,7.4,null,"Nébuleuse de l'Haltère",0],["M 75","NGC 6864","GCl",20.1013,-21.922,3.6,null,8.26,null,"",0],["NGC 6888","","HII",20.2018,38.355,20.0,10.0,7.44,null,"Nébuleuse du Croissant",0],["NGC 6905","","PN",20.3731,20.105,0.67,null,11.1,null,"Blue Flash Nebula",0],["M 29","NGC 6913","OCl",20.3994,38.508,3.6,null,6.6,null,"M 29",0],["NGC 6940","","OCl",20.5741,28.283,10.8,null,6.3,null,"",0],["NGC 6946","","G",20.5812,60.154,11.4,10.84,9.05,23.73,"Galaxie du Feu d'artifice",0],["NGC 6960","","SNR",20.7662,30.595,210.0,160.0,7.0,null,"Dentelles du Cygne (ouest)",0],["NGC 6979","","SNR",20.8411,32.026,7.0,3.0,null,null,"",0],["M 72","NGC 6981","GCl",20.8911,-12.537,4.5,null,8.96,null,"",0],["NGC 6992","","SNR",20.9386,31.743,60.0,8.0,7.0,null,"Dentelles du Cygne (est)",0],["M 73","NGC 6994","Other",20.9822,-12.636,null,null,8.9,null,"",0],["NGC 6995","","SNR",20.953,31.235,12.0,12.0,7.0,null,"Eastern Veil",0],["NGC 6997","","Cl+N",20.9443,44.632,6.9,null,10.0,null,"",0],["NGC 7000","","HII",20.9881,44.529,120.0,30.0,4.0,null,"Nébuleuse North America",0],["NGC 7008","","PN",21.0091,54.543,1.43,null,10.7,null,"",0],["NGC 7009","","PN",21.0697,-11.363,0.7,0.52,8.0,null,"Saturn Nebula",0],["NGC 7023","","Neb",21.0266,68.17,10.0,8.0,7.2,null,"Nébuleuse de l'Iris",0],["M 15","NGC 7078","GCl",21.4995,12.167,11.1,null,6.3,null,"M 15",0],["M 2","NGC 7089","GCl",21.5575,-0.823,8.4,null,6.25,null,"M 2",0],["M 39","NGC 7092","OCl",21.5301,48.438,19.5,null,4.6,null,"M 39",0],["M 30","NGC 7099","GCl",21.6728,-23.179,9.0,null,7.1,null,"",0],["NGC 7184","","G",22.0444,-20.813,5.98,1.26,11.0,23.13,"",0],["NGC 7217","","G",22.1312,31.359,4.52,3.84,10.47,22.93,"",0],["NGC 7243","","OCl",22.2524,49.898,15.0,null,6.4,null,"",0],["NGC 7293","","PN",22.494,-20.837,16.33,null,7.3,null,"Nébuleuse de l'Hélice",0],["NGC 7331","","G",22.6178,34.416,9.27,3.76,9.41,23.08,"",0],["NGC 7380","","Cl+N",22.7892,58.132,25.0,20.0,7.2,null,"Nébuleuse du Sorcier",0],["NGC 7538","","Cl+N",23.2274,61.512,8.0,7.0,null,null,"",0],["NGC 7606","","G",23.318,-8.485,5.26,4.47,11.0,23.81,"",0],["NGC 7635","","HII",23.346,61.212,15.0,8.0,11.0,null,"Nébuleuse de la Bulle",0],["M 52","NGC 7654","OCl",23.4134,61.593,9.9,null,6.9,null,"M 52",0],["NGC 7789","","OCl",23.9567,56.708,14.4,null,6.7,null,"",0],["NGC 7793","","G",23.9638,-32.591,10.42,6.05,9.29,23.05,"",0],["NGC 7814","","G",0.0541,16.145,4.37,1.88,10.6,23.03,"",0],["NGC 7822","","HII",0.0598,67.162,20.0,4.0,null,null,"NGC 7822",0],["C009","","HII",22.965,62.518,50.0,30.0,null,null,"Cave Nebula",0],["ESO351-030","","G",1.0026,-33.709,15.26,15.26,8.6,19.51,"Sculptor Dwarf Elliptical",0],["ESO356-004","","G",2.6665,-34.449,12.88,10.47,7.4,23.42,"Fornax Dwarf Spheroidal",0],["ESO383-087","","G",13.8215,-36.063,4.27,3.31,10.91,22.97,"",0],["M 40","","**",12.3711,58.084,null,null,8.0,null,"",0],["M 45","Mel022","OCl",3.7913,24.105,150.0,150.0,1.2,null,"Pléiades",0],["Mel071","","OCl",7.626,-12.055,14.4,null,7.1,null,"",0],["MWSC3171","","GCl",19.754,-8.007,5.4,null,7.54,null,"",0],["PGC000143","","G",0.0328,-15.461,10.47,3.55,10.76,23.91,"Wolf-Lundmark-Melotte",0],["PGC088608","","G",10.2175,-1.615,30.2,12.02,10.4,28.07,"Sextans Dwarf Spheroidal",0],["UGC04305","","G",8.318,70.72,7.94,5.62,10.75,24.08,"",0],["UGC05470","","G",10.1411,12.306,11.75,8.51,10.36,25.35,"Leo I",0],["Sh2-101","","HII",20.0,35.32,16,16,null,null,"Tulipe",1],["Sh2-129","","HII",21.19,59.95,150,100,null,null,"Chauve-souris (Flying Bat)",1],["Sh2-155","","HII",22.947,62.62,50,30,null,null,"Nébuleuse de la Grotte",1],["Sh2-132","","HII",22.32,56.08,40,30,null,null,"Nébuleuse du Lion",1],["Sh2-157","","HII",23.27,60.03,60,40,null,null,"Pince de homard",1],["Sh2-240","","SNR",5.65,27.83,180,180,null,null,"Spaghetti (Simeis 147)",1],["Sh2-119","","HII",21.3,43.93,70,70,null,null,"Sh2-119",1],["Sh2-112","","HII",20.563,45.63,15,15,null,null,"Sh2-112",1],["Sh2-261","","HII",6.148,15.7,40,30,null,null,"Nébuleuse de Lower",1],["Sh2-308","","HII",6.9,-23.92,40,40,null,null,"Nébuleuse du Dauphin",1],["Sh2-188","","PN",1.51,58.4,10,10,null,null,"Sh2-188 (planétaire)",1],["Sh2-136","","RfN",21.27,68.25,15,15,null,null,"Nébuleuse du Fantôme",1],["Sh2-171","","HII",0.07,67.17,100,80,null,null,"Sh2-171",1]];
+
+// ---------------------------------------------------------------- matériel
+const FILTERS = {
+  uvir: { name: "UV/IR-Cut (Optolong)", band: 1.0, nb: false },
+  len:  { name: "L-eNhance (Optolong)", band: 0.08, nb: true },
+  quad: { name: "Quad Band (Antlia)", band: 0.10, nb: true },
+  astro:{ name: "Astro (Dwarf)", band: 1.0, nb: false },
+  vis:  { name: "VIS (Dwarf)", band: 0.9, nb: false },
+  duo:  { name: "Duo-Band (Dwarf)", band: 0.08, nb: true },
+};
+const CAMS = {
+  asi294: { name: "ASI294MC Pro", px: 4.63, w: 4144, h: 2822, rn: 1.3, qe: 0.5, gain: "gain 120", cooled: true },
+  canon:  { name: "Canon EOS 1100D défiltré", px: 5.2, w: 4272, h: 2848, rn: 4.0, qe: 0.35, gain: "ISO 800", cooled: false },
+  dtele:  { name: "Dwarf 3 TELE", px: 2.0, w: 3840, h: 2160, rn: 1.2, qe: 0.5, gain: "votre gain habituel", cooled: false },
+  dwide:  { name: "Dwarf 3 WIDE", px: 2.9, w: 1920, h: 1080, rn: 1.2, qe: 0.5, gain: "votre gain habituel", cooled: false },
+};
+// D : diamètre (mm) ; F : focale effective (mm) ; obs : obstruction (fraction du diamètre)
+// load : charge estimée (kg), cap : charge annoncée de la monture (kg) ; maxSub : pose maxi (s)
+const RIGS = [
+  { id: "n200", short: "TS 200/800", name: "TS-Optics 200/800 f/4 + Baader MPCC + ASI294MC Pro",
+    D: 200, F: 800, obs: 0.35, cam: "asi294", mount: "iOptron GEM28", eq: true, guided: "diviseur optique ZWO + ASI120 Mini",
+    filters: ["uvir", "len", "quad"], load: 10.5, cap: 12.7, maxSub: 300 },
+  { id: "o85", short: "Omegon 85 réd.", name: "Omegon 85/510 + réducteur 0,92× + ASI294MC Pro",
+    D: 85, F: 469, obs: 0, cam: "asi294", mount: "iOptron GEM28 ou NEQ5", eq: true, guided: "TS 60/360 + ASI120 Mini",
+    filters: ["uvir", "len", "quad"], load: 6.0, cap: 9.0, maxSub: 300 },
+  { id: "a60z", short: "Askar 60F + ASI294", name: "Askar 60F (60/408) + ASI294MC Pro",
+    D: 60, F: 408, obs: 0, cam: "asi294", mount: "Star Adventurer GTi", eq: true, guided: "petite lunette guide + ASI120 Mini",
+    filters: ["uvir", "len", "quad"], load: 4.2, cap: 5.0, maxSub: 180 },
+  { id: "a60c", short: "Askar 60F + Canon", name: "Askar 60F (60/408) + Canon EOS 1100D défiltré",
+    D: 60, F: 408, obs: 0, cam: "canon", mount: "Star Adventurer", eq: true, guided: "",
+    filters: ["uvir", "len", "quad"], load: 3.4, cap: 5.0, maxSub: 60 },
+  { id: "o85c", short: "Omegon 85 + Canon", name: "Omegon 85/510 + réducteur 0,92× + Canon EOS 1100D défiltré",
+    D: 85, F: 469, obs: 0, cam: "canon", mount: "NEQ5", eq: true, guided: "TS 60/360 + ASI120 Mini",
+    filters: ["uvir", "len", "quad"], load: 4.6, cap: 9.0, maxSub: 300 },
+  { id: "dtele", short: "Dwarf 3 TELE", name: "Dwarf 3, caméra TELE (35/150)",
+    D: 35, F: 150, obs: 0, cam: "dtele", mount: "Dwarf 3", eq: false, guided: "", dwarf: true,
+    filters: ["astro", "vis", "duo"], maxSub: 60 },
+  { id: "dwide", short: "Dwarf 3 WIDE", name: "Dwarf 3, caméra WIDE (3,4/6,7)",
+    D: 3.4, F: 6.7, obs: 0, cam: "dwide", mount: "Dwarf 3", eq: false, guided: "", dwarf: true,
+    filters: ["astro", "vis", "duo"], maxSub: 30 },
+];
+const SQM = { 1: 21.9, 2: 21.7, 3: 21.4, 4: 20.9, 5: 20.2, 6: 19.4, 7: 18.9, 8: 18.4, 9: 17.8 };
+
+const TYPES = {
+  G: "galaxie", GPair: "paire de galaxies", GTrpl: "trio de galaxies", GGroup: "groupe de galaxies",
+  PN: "nébuleuse planétaire", HII: "région HII", EmN: "nébuleuse en émission", RfN: "nébuleuse par réflexion",
+  SNR: "rémanent de supernova", "Cl+N": "amas et nébuleuse", OCl: "amas ouvert", GCl: "amas globulaire",
+  Neb: "nébuleuse", "*Ass": "association d'étoiles", "**": "étoile double", Other: "autre", DrkN: "nébuleuse obscure",
+};
+const EMISSION = new Set(["HII", "EmN", "SNR", "Cl+N", "PN", "Neb"]);
+const FAMILY = t => t.startsWith("G") && t !== "GCl" ? "gal" : (t === "OCl" || t === "GCl" || t === "*Ass" || t === "**") ? "amas" : "neb";
+
+// ---------------------------------------------------------------- réglages
+const DEFAULTS = { lat: 43.4558, lon: 5.0150, siteName: "Saint-Mitre-les-Remparts", bortle: 5, seeing: 2.5,
+  dwarfEq: 0, rigs: RIGS.map(r => r.id) };
+let S = Object.assign({}, DEFAULTS);
+let dbDoc = null;
+function loadLocal() { try { const t = localStorage.getItem("astroplan"); if (t) Object.assign(S, JSON.parse(t)); } catch (e) {} }
+function saveLocal() { try { localStorage.setItem("astroplan", JSON.stringify(S)); } catch (e) {} }
+let saveTimer = null;
+function saveSettings() {
+  saveLocal();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (dbDoc) { try { await dbDoc.set(Object.assign({}, S)); flashSaved(); } catch (e) {} } else flashSaved();
+  }, 600);
+}
+function flashSaved() { const m = $("#savedMsg"); m.hidden = false; clearTimeout(m._t); m._t = setTimeout(() => m.hidden = true, 1800); }
+
+// ---------------------------------------------------------------- astronomie
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const jdOf = t => t / 86400000 + 2440587.5;
+const norm360 = x => ((x % 360) + 360) % 360;
+function gmst(jd) { const T = (jd - 2451545) / 36525; return norm360(280.46061837 + 360.98564736629 * (jd - 2451545) + 0.000387933 * T * T); }
+function precess(raDeg, decDeg, jd) {   // J2000 -> équinoxe de la date (Meeus 21.2)
+  const T = (jd - 2451545) / 36525, a = raDeg * D2R, d = decDeg * D2R;
+  const ze = (2306.2181 * T + 0.30188 * T * T) / 3600 * D2R, z = (2306.2181 * T + 1.09468 * T * T) / 3600 * D2R,
+        th = (2004.3109 * T - 0.42665 * T * T) / 3600 * D2R;
+  const A = Math.cos(d) * Math.sin(a + ze), B = Math.cos(th) * Math.cos(d) * Math.cos(a + ze) - Math.sin(th) * Math.sin(d),
+        C = Math.sin(th) * Math.cos(d) * Math.cos(a + ze) + Math.cos(th) * Math.sin(d);
+  return [norm360((Math.atan2(A, B) + z) * R2D), Math.asin(C) * R2D];
+}
+function altaz(ra, dec, jd) {
+  const H = (gmst(jd) + S.lon - ra) * D2R, d = dec * D2R, f = S.lat * D2R;
+  const sa = Math.sin(f) * Math.sin(d) + Math.cos(f) * Math.cos(d) * Math.cos(H);
+  const alt = Math.asin(Math.max(-1, Math.min(1, sa)));
+  const az = Math.atan2(-Math.sin(H) * Math.cos(d), Math.cos(f) * Math.sin(d) - Math.sin(f) * Math.cos(d) * Math.cos(H));
+  return { alt: alt * R2D, az: norm360(az * R2D) };
+}
+function sunPos(jd) {
+  const n = jd - 2451545, L = norm360(280.460 + 0.9856474 * n), g = norm360(357.528 + 0.9856003 * n) * D2R;
+  const lam = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D2R, eps = (23.439 - 0.0000004 * n) * D2R;
+  return { ra: norm360(Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)) * R2D), dec: Math.asin(Math.sin(eps) * Math.sin(lam)) * R2D, lon: lam * R2D };
+}
+function moonPos(jd) {   // méthode de P. Schlyter, perturbations principales
+  const d = jd - 2451543.5;
+  const N = norm360(125.1228 - 0.0529538083 * d), i = 5.1454, w = norm360(318.0634 + 0.1643573223 * d),
+        a = 60.2666, e = 0.0549, M = norm360(115.3654 + 13.0649929509 * d);
+  let E = M + R2D * e * Math.sin(M * D2R) * (1 + e * Math.cos(M * D2R));
+  for (let k = 0; k < 5; k++) E = E - (E - R2D * e * Math.sin(E * D2R) - M) / (1 - e * Math.cos(E * D2R));
+  const xv = a * (Math.cos(E * D2R) - e), yv = a * Math.sqrt(1 - e * e) * Math.sin(E * D2R);
+  const v = Math.atan2(yv, xv) * R2D; let r = Math.hypot(xv, yv);
+  const vw = (v + w) * D2R, Nr = N * D2R, ir = i * D2R;
+  const xh = r * (Math.cos(Nr) * Math.cos(vw) - Math.sin(Nr) * Math.sin(vw) * Math.cos(ir));
+  const yh = r * (Math.sin(Nr) * Math.cos(vw) + Math.cos(Nr) * Math.sin(vw) * Math.cos(ir));
+  const zh = r * Math.sin(vw) * Math.sin(ir);
+  let lon = Math.atan2(yh, xh) * R2D, lat = Math.atan2(zh, Math.hypot(xh, yh)) * R2D;
+  const Ms = norm360(356.0470 + 0.9856002585 * d), ws = 282.9404 + 4.70935e-5 * d, Ls = Ms + ws, Lm = N + w + M,
+        D = Lm - Ls, F = Lm - N, s = x => Math.sin(x * D2R);
+  lon += -1.274 * s(M - 2 * D) + 0.658 * s(2 * D) - 0.186 * s(Ms) - 0.059 * s(2 * M - 2 * D) - 0.057 * s(M - 2 * D + Ms)
+       + 0.053 * s(M + 2 * D) + 0.046 * s(2 * D - Ms) + 0.041 * s(M - Ms) - 0.035 * s(D) - 0.031 * s(M + Ms)
+       - 0.015 * s(2 * F - 2 * D) + 0.011 * s(M - 4 * D);
+  lat += -0.173 * s(F - 2 * D) - 0.055 * s(M - F - 2 * D) - 0.046 * s(M + F - 2 * D) + 0.033 * s(F + 2 * D) + 0.017 * s(2 * M + F);
+  r += -0.58 * Math.cos((M - 2 * D) * D2R) - 0.46 * Math.cos(2 * D * D2R);
+  const ecl = (23.4393 - 3.563e-7 * d) * D2R, lo = lon * D2R, la = lat * D2R;
+  const xe = Math.cos(lo) * Math.cos(la), ye = Math.cos(ecl) * Math.sin(lo) * Math.cos(la) - Math.sin(ecl) * Math.sin(la),
+        ze = Math.sin(ecl) * Math.sin(lo) * Math.cos(la) + Math.cos(ecl) * Math.sin(la);
+  return { ra: norm360(Math.atan2(ye, xe) * R2D), dec: Math.atan2(ze, Math.hypot(xe, ye)) * R2D, lon: norm360(lon), lat, r };
+}
+function moonState(jd) {
+  const m = moonPos(jd), sn = sunPos(jd);
+  const h = altaz(m.ra, m.dec, jd);
+  h.alt -= R2D * Math.asin(Math.cos(h.alt * D2R) / m.r);       // parallaxe
+  const elong = Math.acos(Math.cos(m.lat * D2R) * Math.cos((m.lon - sn.lon) * D2R)) * R2D;
+  return { ra: m.ra, dec: m.dec, alt: h.alt, az: h.az, illum: (1 - Math.cos(elong * D2R)) / 2, waxing: norm360(m.lon - sn.lon) < 180 };
+}
+function sep(ra1, dec1, ra2, dec2) {
+  const c = Math.sin(dec1 * D2R) * Math.sin(dec2 * D2R) + Math.cos(dec1 * D2R) * Math.cos(dec2 * D2R) * Math.cos((ra1 - ra2) * D2R);
+  return Math.acos(Math.max(-1, Math.min(1, c))) * R2D;
+}
+// fond de ciel (mag/arcsec²) avec la Lune : modèle simple, ordre de grandeur
+function skyMag(moon, separation) {
+  const base = SQM[S.bortle];
+  if (moon.alt <= 0 || moon.illum < 0.02) return base;
+  const mm = 18.0 - 5 * Math.log10(Math.max(moon.illum, 0.02)) + 0.5 * (separation - 60) / 30 + (1 - Math.sin(Math.max(moon.alt, 2) * D2R));
+  return -2.5 * Math.log10(Math.pow(10, -0.4 * base) + Math.pow(10, -0.4 * mm));
+}
+
+// ---------------------------------------------------------------- la nuit
+const STEP_MIN = 5;
+function eveningStart(dateStr) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(y, m - 1, d, 12, 0, 0).getTime(); }
+function nightModel(dateStr, step = STEP_MIN) {
+  const t0 = eveningStart(dateStr), n = Math.round(24 * 60 / step);
+  const times = [], sunAlt = [], moons = [];
+  for (let k = 0; k <= n; k++) {
+    const t = t0 + k * step * 60000, jd = jdOf(t), sn = sunPos(jd);
+    times.push(t); sunAlt.push(altaz(sn.ra, sn.dec, jd).alt); moons.push(moonState(jd));
+  }
+  const cross = (lim, down) => { for (let k = 1; k < times.length; k++) {
+    if (down ? (sunAlt[k - 1] > lim && sunAlt[k] <= lim) : (sunAlt[k - 1] <= lim && sunAlt[k] > lim)) return times[k]; } return null; };
+  const m = { t0, step, times, sunAlt, moons, sunset: cross(-0.833, true), sunrise: cross(-0.833, false),
+    darkStart: cross(-18, true), darkEnd: cross(-18, false) };
+  const mid = moons[Math.floor(moons.length / 2)];
+  m.moonIllum = mid.illum; m.moonWaxing = mid.waxing;
+  m.moonRise = null; m.moonSet = null;
+  for (let k = 1; k < moons.length; k++) {
+    if (moons[k - 1].alt <= 0 && moons[k].alt > 0 && !m.moonRise) m.moonRise = times[k];
+    if (moons[k - 1].alt > 0 && moons[k].alt <= 0 && !m.moonSet) m.moonSet = times[k];
+  }
+  m.darkHours = (m.darkStart && m.darkEnd) ? (m.darkEnd - m.darkStart) / 3.6e6 : 0;
+  return m;
+}
+function targetCoords(o, jd) { return precess(o[3] * 15, o[4], jd); }
+function visibility(o, nm) {
+  const [ra, dec] = targetCoords(o, jdOf(nm.t0 + 12 * 3.6e6));
+  const alts = [], azs = []; let best = -90, bestT = null, usable = 0, wStart = null, wEnd = null, moonSepMin = 180, moonUp = 0, skySum = 0, nSky = 0;
+  for (let k = 0; k < nm.times.length; k++) {
+    const t = nm.times[k], h = altaz(ra, dec, jdOf(t)); alts.push(h.alt); azs.push(h.az);
+    const dark = nm.sunAlt[k] <= -18;
+    if (dark && h.alt > best) { best = h.alt; bestT = t; }
+    if (dark && h.alt >= S.minAlt) {
+      usable += nm.step / 60; if (wStart === null) wStart = t; wEnd = t;
+      const mo = nm.moons[k], sp = sep(ra, dec, mo.ra, mo.dec);
+      if (mo.alt > 0) { moonUp += nm.step / 60; moonSepMin = Math.min(moonSepMin, sp); }
+      skySum += skyMag(mo, sp); nSky++;
+    }
+  }
+  return { ra, dec, alts, azs, best, bestT, usable, wStart, wEnd, moonUp, moonSepMin,
+    sky: nSky ? skySum / nSky : SQM[S.bortle] };
+}
+
+// ---------------------------------------------------------------- conseils par instrument
+function rigFov(r) { const c = CAMS[r.cam]; if (r.id === "dwide") return { w: 44.1, h: 24.8, scale: 82.7 };
+  return { w: c.w * c.px / 1000 / r.F * R2D, h: c.h * c.px / 1000 / r.F * R2D, scale: 206.265 * c.px / r.F }; }
+function chooseFilter(r, o, sky) {
+  const emi = EMISSION.has(o[2]);
+  const base = SQM[S.bortle];
+  if (emi) return r.dwarf ? "duo" : "len";
+  return r.dwarf ? (S.bortle >= 5 ? "vis" : "astro") : "uvir";
+}
+function subExposure(r, filt, sky) {   // pose qui noie le bruit de lecture dans celui du fond de ciel
+  const c = CAMS[r.cam], fov = rigFov(r), f = FILTERS[filt];
+  const area = Math.PI * Math.pow(r.D / 20, 2) * (1 - r.obs * r.obs);           // cm²
+  const rate = 8.8e5 * Math.pow(10, -0.4 * sky) * area * fov.scale * fov.scale * c.qe * f.band;   // e-/s/px
+  let t = 25 * c.rn * c.rn / Math.max(rate, 1e-6);
+  const lo = r.dwarf ? 10 : 30;
+  return { t, rate, lo };
+}
+function niceSub(t) { const steps = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 420, 600];
+  return steps.reduce((b, s) => Math.abs(s - t) < Math.abs(b - t) ? s : b, steps[0]); }
+function surfaceClass(o) {   // 0 brillant, 1 moyen, 2 faible
+  const [, , t, , , maj, mn, v, sb] = o;
+  if (o[0].startsWith("Sh2")) return 2;
+  if (sb) return sb < 21.5 ? 0 : sb < 23 ? 1 : 2;
+  if (v != null && maj) { const area = Math.PI / 4 * maj * (mn || maj) * 3600; const s = v + 2.5 * Math.log10(area); return s < 21 ? 0 : s < 23 ? 1 : 2; }
+  return 1;
+}
+function rotationLimit(vis, nm, r) {   // monture alt-azimutale : pose maxi pour un filé < 0,5 FWHM dans les coins
+  if (!r.dwarf || S.dwarfEq == 1) return null;
+  const c = CAMS[r.cam], halfdiag = Math.hypot(c.w, c.h) / 2, fwhm = 3.0;
+  let worst = null, worstT = null; const all = [];
+  for (let k = 0; k < nm.times.length; k++) {
+    if (nm.sunAlt[k] > -18 || vis.alts[k] < S.minAlt) continue;
+    const alt = vis.alts[k], az = vis.azs[k], ca = Math.cos(alt * D2R);
+    const rate = 15.041 * Math.cos(S.lat * D2R) * Math.cos(az * D2R) / Math.max(ca, 0.03);   // °/h
+    const pxs = Math.abs(rate) * D2R / 3600 * halfdiag;          // filé dans les coins, px/s
+    const tmax = fwhm / (pxs + 1e-12);                           // filé < 1 FWHM
+    all.push(tmax);
+    if (worst === null || tmax < worst) { worst = tmax; worstT = nm.times[k]; }
+  }
+  if (worst === null) return null;
+  all.sort((a, b) => a - b);
+  return { tmax: all[Math.floor(all.length / 2)], worst, at: worstT, pxPerS: fwhm / worst, fwhm };
+}
+function advise(r, o, vis, nm) {
+  const fov = rigFov(r), c = CAMS[r.cam], maj = (o[5] || 2) / 60, mn = (o[6] || o[5] || 2) / 60;
+  const notes = []; let score = 0;
+  // cadrage
+  const fill = maj / Math.min(fov.w, fov.h), fillLong = maj / fov.w;
+  let frame;
+  if (fillLong > 0.95) { const nx = Math.ceil(maj / (fov.w * 0.85)), ny = Math.ceil(mn / (fov.h * 0.85));
+    frame = Math.max(0.15, 0.95 / fillLong); notes.push(`L'objet déborde du champ : mosaïque de ${nx} × ${Math.max(1, ny)} panneaux, ou cadrez la partie la plus belle.`); }
+  else if (fill < 0.12) { frame = Math.max(0.05, fill / 0.12) * 0.8; notes.push("L'objet est petit dans ce champ : il faudra recadrer fortement."); }
+  else if (fill < 0.3) frame = 0.75 + 0.25 * (fill - 0.12) / 0.18;
+  else frame = 1;
+  // échantillonnage
+  const px = maj * 3600 / fov.scale;
+  if (px < 60 && maj * 60 < 10) { frame *= 0.6; }
+  if (fov.scale < S.seeing / 3.2) notes.push(`Échantillonnage fin (${fmt(fov.scale, 2)}″/px pour ${fmt(S.seeing, 1)}″ de turbulence) : un binning 2×2 au traitement est possible.`);
+  // filtre et pose
+  const filt = chooseFilter(r, o, vis.sky);
+  const emi = EMISSION.has(o[2]);
+  const se = subExposure(r, filt, vis.sky);
+  let limit = r.maxSub, why = r.dwarf ? "limite du Dwarf" : (r.guided ? "guidage" : "suivi sans guidage");
+  const rot = rotationLimit(vis, nm, r);
+  if (rot && rot.tmax < limit) { limit = rot.tmax; why = "rotation de champ"; }
+  let sub = niceSub(Math.max(se.lo, Math.min(se.t, limit)));
+  if (rot) {
+    const trail = rot.pxPerS * sub;                              // au pire moment
+    if (trail > rot.fwhm) notes.push(`Vers ${hhmm(rot.at)}, la rotation de champ étire les étoiles des coins d'environ ${Math.round(trail)} px pendant une pose de ${sub} s : recadrez les bords, ou passez à ${niceSub(Math.max(10, rot.worst))} s autour de cette heure.`);
+  }
+  // temps total
+  const cls = surfaceClass(o);
+  let hours = [1.5, 4, 8][cls];
+  const fr = r.F / r.D;
+  hours *= Math.pow(fr / 5, 2);
+  const skyFactor = Math.pow(10, 0.4 * (21.0 - SQM[S.bortle]));
+  hours *= FILTERS[filt].nb ? Math.pow(skyFactor, 0.3) : skyFactor;
+  if (r.cam === "canon") hours *= 1.3;
+  if (r.dwarf) hours *= 1.2;
+  hours = Math.max(1, Math.min(20, Math.round(hours * 2) / 2));
+  const nSubs = Math.ceil(hours * 3600 / sub);
+  const tonightSubs = Math.floor(vis.usable * 3600 / (sub * 1.08));
+  // Lune
+  if (!emi && vis.moonUp > 0.5 && nm.moonIllum > 0.35) { notes.push(`Lune éclairée à ${Math.round(nm.moonIllum * 100)} % pendant ${fmt(vis.moonUp, 1)} h : mauvaise nuit pour cet objet sans filtre, préférez une nuit sans Lune.`); score -= 0.25; }
+  if (emi && vis.moonUp > 0.5 && nm.moonIllum > 0.5) notes.push(`Avec la Lune à ${Math.round(nm.moonIllum * 100)} %, le filtre bi-bande sauve la soirée, mais l'OIII souffrira.`);
+  // monture
+  if (r.load && r.cap) { const u = r.load / r.cap; if (u > 0.9) notes.push(`Charge estimée ${fmt(r.load, 1)} kg pour ${fmt(r.cap, 1)} kg annoncés : à la limite, soignez l'équilibrage et le vent.`); }
+  if (r.eq && vis.bestT && vis.best > S.minAlt && r.mount !== "Star Adventurer") notes.push(`Retournement au méridien vers ${hhmm(vis.bestT)}.`);
+  if (r.id === "a60c" || r.id === "o85c") { if (filt === "uvir") notes.push("Canon défiltré : gardez le filtre UV/IR-Cut, sinon les étoiles gonflent."); notes.push("Canon non refroidi : faites les darks à la même température, juste après la séance."); }
+  if (r.dwarf && S.dwarfEq != 1 && vis.best > 80) notes.push("L'objet passe près du zénith : le Dwarf en alt-azimutal y suit mal. Évitez l'heure de la culmination.");
+  if (r.id === "dwide" && maj < 2) { frame *= 0.3; }
+  // note globale
+  const speed = Math.min(1, Math.pow(5 / fr, 2) * Math.min(1, r.D / 60));
+  score += 0.6 * frame + 0.3 * speed + (r.dwarf ? 0.05 : 0);
+  if (rot && rot.tmax < 8) score -= 0.15;
+  if (vis.usable < 0.5) score -= 0.3;
+  return { r, fov, filt, sub, why, hours, nSubs, tonightSubs, notes, score, fill, rot, gain: c.gain, cooled: c.cooled };
+}
+function bestRigs(o, vis, nm) {
+  return RIGS.filter(r => S.rigs.includes(r.id)).map(r => advise(r, o, vis, nm)).sort((a, b) => b.score - a.score);
+}
+
+// ---------------------------------------------------------------- utilitaires d'affichage
+const $ = s => document.querySelector(s);
+const fmt = (x, d = 1) => x == null ? "—" : Number(x).toFixed(d).replace(".", ",");
+const hhmm = t => t == null ? "—" : new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const dayFr = t => new Date(t).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const size = o => o[5] ? (o[5] >= 60 ? `${fmt(o[5] / 60, 1)}°` : `${Math.round(o[5])}′`) : "—";
+const hm = h => { const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`; };
+function raStr(ra) { const h = ra / 15, H = Math.floor(h), m = (h - H) * 60, M = Math.floor(m), s = Math.round((m - M) * 60); return `${H}h ${String(M).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`; }
+function decStr(d) { const sg = d < 0 ? "−" : "+", a = Math.abs(d), D = Math.floor(a), m = Math.round((a - D) * 60); return `${sg}${D}° ${String(m).padStart(2, "0")}′`; }
+const moonWord = nm => { const p = Math.round(nm.moonIllum * 100); return p < 3 ? "nouvelle Lune" : `${p} % ${nm.moonWaxing ? "croissante" : "décroissante"}`; };
+const label = o => o[9] && o[9] !== o[0] ? o[9] : (TYPES[o[2]] || "");
+
+// ---------------------------------------------------------------- état
+let NM = null, current = null, typeFilter = "all", rigFilter = "all";
+function dateValue() { return $("#date").value; }
+
+function renderNightbar() {
+  const nm = NM;
+  const moonTxt = nm.moonRise || nm.moonSet ? [nm.moonRise ? `lever ${hhmm(nm.moonRise)}` : "", nm.moonSet ? `coucher ${hhmm(nm.moonSet)}` : ""].filter(Boolean).join(", ") : (nm.moons[Math.floor(nm.moons.length / 2)].alt > 0 ? "levée toute la nuit" : "couchée toute la nuit");
+  $("#nightbar").innerHTML = `
+    <div class="stat"><div class="k">Nuit noire</div><div class="v">${hhmm(nm.darkStart)} – ${hhmm(nm.darkEnd)}</div><div class="s">${hm(nm.darkHours)} de nuit astronomique</div></div>
+    <div class="stat"><div class="k">Soleil</div><div class="v">${hhmm(nm.sunset)} / ${hhmm(nm.sunrise)}</div><div class="s">coucher / lever</div></div>
+    <div class="stat"><div class="k">Lune</div><div class="v">${moonWord(nm)}</div><div class="s">${moonTxt}</div></div>
+    <div class="stat"><div class="k">Ciel</div><div class="v">Bortle ${S.bortle}</div><div class="s">≈ ${fmt(SQM[S.bortle], 1)} mag/″² sans Lune</div></div>`;
+}
+
+// ---- Ce soir
+function renderTypeChips() {
+  const opts = [["all", "Tout"], ["neb", "Nébuleuses"], ["gal", "Galaxies"], ["amas", "Amas"]];
+  $("#typeChips").innerHTML = opts.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${typeFilter === k}">${l}</button>`).join("");
+  const rigs = [["all", "Tous mes instruments"], ...RIGS.filter(r => S.rigs.includes(r.id)).map(r => [r.id, r.short])];
+  if (!rigs.some(([k]) => k === rigFilter)) rigFilter = "all";
+  $("#rigChips").innerHTML = rigs.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${rigFilter === k}">${esc(l)}</button>`).join("");
+}
+function renderTonight() {
+  const nm = NM, rows = [];
+  for (const o of CATALOG) {
+    if (typeFilter !== "all" && FAMILY(o[2]) !== typeFilter) continue;
+    if (!o[5] && o[2] !== "PN") continue;
+    const vis = visibility(o, nm);
+    if (vis.usable < 1) continue;
+    const rigs = rigFilter === "all" ? bestRigs(o, vis, nm) : [advise(RIGS.find(r => r.id === rigFilter), o, vis, nm)];
+    if (!rigs.length) continue;
+    const b = rigs[0];
+    const fame = (o[0].startsWith("M ") ? 0.15 : 0) + (o[9] ? 0.1 : 0) + (o[7] != null ? Math.max(0, 0.12 - Math.max(0, o[7] - 4) * 0.015) : 0);
+    const moonPen = (!EMISSION.has(o[2]) && vis.moonUp > 0.5 && nm.moonIllum > 0.35) ? 0.35 : 0;
+    const s = b.score + 0.25 * Math.min(1, vis.usable / 5) + fame - moonPen;
+    rows.push({ o, vis, b, s });
+  }
+  rows.sort((a, b) => b.s - a.s);
+  const top = rows.slice(0, 40);
+  $("#tonightBody").innerHTML = top.map(({ o, vis, b }) => `
+    <tr class="click" data-id="${esc(o[0])}" tabindex="0">
+      <td><div class="obj">${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(label(o))}</small></div></td>
+      <td>${esc(TYPES[o[2]] || o[2])}</td>
+      <td class="num">${size(o)}</td>
+      <td class="num">${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)}</td>
+      <td class="num">${hm(vis.usable)}</td>
+      <td class="num">${Math.round(vis.best)}°</td>
+      <td>${vis.moonUp > 0.25 && nm.moonIllum > 0.1 ? `<span class="pill ${EMISSION.has(o[2]) ? "warn" : "bad"}">${Math.round(vis.moonSepMin)}° de la Lune</span>` : `<span class="pill good">sans Lune</span>`}</td>
+      <td>${esc(b.r.short)}<br><span class="muted">${esc(FILTERS[b.filt].name.split(" (")[0])} · ${b.sub} s</span></td>
+    </tr>`).join("") || `<tr><td colspan="8" class="muted">Aucune cible au-dessus de ${S.minAlt}° pendant au moins une heure de nuit noire.</td></tr>`;
+  $("#tonightNote").textContent = `${rows.length} objets du catalogue sont observables au moins une heure ce soir au-dessus de ${S.minAlt}°. Classement : cadrage dans vos instruments, durée de visibilité, Lune, et notoriété de l'objet.`;
+}
+
+// ---- Cible
+function findObjects(q) {
+  const n = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "");
+  const k = n(q); if (!k) return [];
+  const exact = [], part = [];
+  for (const o of CATALOG) {
+    const keys = [o[0], o[1], o[9]].filter(Boolean).map(n);
+    if (keys.some(x => x === k)) exact.push(o); else if (keys.some(x => x.includes(k))) part.push(o);
+  }
+  return exact.concat(part).slice(0, 12);
+}
+function altChart(o, vis, nm) {
+  const W = 640, H = 230, L = 34, R = 10, T = 10, B = 26;
+  const t0 = nm.sunset ? nm.sunset - 3600e3 : nm.t0 + 5 * 3.6e6, t1 = nm.sunrise ? nm.sunrise + 3600e3 : nm.t0 + 19 * 3.6e6;
+  const X = t => L + (t - t0) / (t1 - t0) * (W - L - R), Y = a => T + (90 - a) / 90 * (H - T - B);
+  let bands = "";
+  for (let k = 0; k < nm.times.length - 1; k++) {
+    const t = nm.times[k]; if (t < t0 || t > t1) continue;
+    const sa = nm.sunAlt[k], c = sa <= -18 ? "var(--night)" : sa <= -6 ? "var(--twilight)" : null;
+    if (c) bands += `<rect x="${X(t).toFixed(1)}" y="${T}" width="${(X(nm.times[k + 1]) - X(t) + 0.6).toFixed(1)}" height="${H - T - B}" fill="${c}" opacity="${sa <= -18 ? 0.55 : 0.5}"/>`;
+  }
+  const path = (vals, f) => { let d = "", on = false; for (let k = 0; k < nm.times.length; k++) { const t = nm.times[k]; if (t < t0 || t > t1) continue;
+    const v = f(k); if (v < -2) { on = false; continue; } d += `${on ? "L" : "M"}${X(t).toFixed(1)},${Y(Math.max(0, v)).toFixed(1)}`; on = true; } return d; };
+  const tgt = path(vis.alts, k => vis.alts[k]), moon = path(null, k => nm.moons[k].alt);
+  let ticks = "";
+  for (let h = Math.ceil(t0 / 3.6e6) * 3.6e6; h <= t1; h += 3.6e6) { const d = new Date(h); if (d.getHours() % 2) continue;
+    ticks += `<line x1="${X(h)}" x2="${X(h)}" y1="${H - B}" y2="${H - B + 4}" stroke="var(--muted)"/><text x="${X(h)}" y="${H - 8}" text-anchor="middle">${String(d.getHours()).padStart(2, "0")}h</text>`; }
+  let yt = ""; for (const a of [0, 30, 60, 90]) yt += `<text x="${L - 6}" y="${Y(a) + 4}" text-anchor="end">${a}°</text><line x1="${L}" x2="${W - R}" y1="${Y(a)}" y2="${Y(a)}" stroke="var(--line)" stroke-width="0.6"/>`;
+  const win = vis.wStart ? `<rect x="${X(vis.wStart)}" y="${H - B - 5}" width="${Math.max(2, X(vis.wEnd) - X(vis.wStart))}" height="5" fill="var(--accent)"/>` : "";
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hauteur de ${esc(o[0])} pendant la nuit">
+    ${bands}${yt}
+    <line x1="${L}" x2="${W - R}" y1="${Y(S.minAlt)}" y2="${Y(S.minAlt)}" stroke="var(--warn)" stroke-dasharray="4 4" stroke-width="1"/>
+    <path d="${moon}" fill="none" stroke="var(--moon)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <path d="${tgt}" fill="none" stroke="var(--target)" stroke-width="2.5"/>
+    ${win}${ticks}</svg>`;
+}
+function frameSvg(a, o) {
+  const fov = a.fov, maj = (o[5] || 2) / 60, mn = (o[6] || o[5] || 2) / 60;
+  const span = Math.max(fov.w, maj) * 1.15, W = 140, H = 100, k = W / span, HT = 116;
+  const fw = fov.w * k, fh = fov.h * k;
+  return `<svg viewBox="0 0 ${W} ${HT}" role="img" aria-label="Cadrage de ${esc(o[0])} dans le champ">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="var(--night)" rx="4"/>
+    <ellipse cx="${W / 2}" cy="${H / 2}" rx="${Math.max(1.5, maj * k / 2)}" ry="${Math.max(1.5, mn * k / 2)}" fill="var(--target)" opacity="0.45" stroke="var(--target)"/>
+    <rect x="${(W - fw) / 2}" y="${(H - fh) / 2}" width="${fw}" height="${fh}" fill="none" stroke="var(--ink)" stroke-width="1.2"/>
+    <text x="0" y="${HT - 3}" fill="var(--muted)" font-size="10" font-family="var(--f-mono)">${fmt(fov.w, 2)}° × ${fmt(fov.h, 2)}°</text></svg>`;
+}
+function sheet(o, vis, nm, a) {
+  const L = [];
+  L.push(`AstroPlan — ${o[0]}${o[9] ? " (" + o[9] + ")" : ""}, soirée du ${new Date(nm.t0).toLocaleDateString("fr-FR")}`);
+  L.push(`Lieu : ${S.siteName} (${fmt(S.lat, 4)}°, ${fmt(S.lon, 4)}°)`);
+  L.push(`Nuit noire : ${hhmm(nm.darkStart)} – ${hhmm(nm.darkEnd)}`);
+  L.push(`Cible au-dessus de ${S.minAlt}° : ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)}), culmine à ${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}`);
+  L.push(`Lune : ${moonWord(nm)}${vis.moonUp > 0.2 ? `, levée ${hm(vis.moonUp)} pendant la fenêtre, à ${Math.round(vis.moonSepMin)}° au plus près` : ", absente pendant la fenêtre"}`);
+  L.push(`Coordonnées (date) : RA ${raStr(vis.ra)}, DEC ${decStr(vis.dec)}`);
+  L.push("");
+  L.push(`Matériel : ${a.r.name}`);
+  L.push(`Monture : ${a.r.mount}${a.r.guided ? ", guidage " + a.r.guided : ""}`);
+  L.push(`Filtre : ${FILTERS[a.filt].name}`);
+  L.push(`Poses : ${a.sub} s · ${a.gain}${a.cooled ? " · capteur à −10 °C" : ""}`);
+  L.push(`Objectif : ${hm(a.hours)} au total, soit ${a.nSubs} poses ; ce soir : ${a.tonightSubs} poses possibles`);
+  L.push(`Darks : ${a.sub} s, ${a.gain}${a.cooled ? ", −10 °C" : ", même température"} ; flats avec le même filtre`);
+  for (const n of a.notes) L.push("• " + n);
+  return L.join("\n");
+}
+function renderTarget() {
+  const o = current, pane = $("#targetPane");
+  if (!o) { pane.innerHTML = `<p class="note">Cherchez une cible par son nom ou son numéro, ou choisissez-en une dans l'onglet « Ce soir ».</p>`; return; }
+  const nm = NM, vis = visibility(o, nm), rigs = bestRigs(o, vis, nm);
+  const head = `<h2>${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}</h2>
+    <p class="muted" style="margin:2px 0 0">${esc(label(o))}${o[9] ? " · " + esc(TYPES[o[2]] || o[2]) : ""} · ${size(o)}${o[7] != null ? " · magnitude " + fmt(o[7], 1) : ""}${o[10] ? " · coordonnées approchées" : ""}</p>`;
+  const visTxt = vis.usable > 0 ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : `jamais au-dessus de ${S.minAlt}° en nuit noire`;
+  const best = rigs[0];
+  pane.innerHTML = `${head}
+    <div class="grid2" style="margin-top:12px">
+      <div class="card chart"><h3>Hauteur pendant la nuit</h3>${altChart(o, vis, nm)}
+        <div class="legend"><span><i style="background:var(--target)"></i>${esc(o[0])}</span><span><i style="background:var(--moon)"></i>Lune</span><span><i style="background:var(--warn)"></i>hauteur mini ${S.minAlt}°</span><span><i style="background:var(--accent);height:5px"></i>fenêtre utile</span></div></div>
+      <div class="card"><h3>Ce soir</h3>
+        <dl class="rigdl" style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:8px 0 0">
+          <dt class="muted">Fenêtre</dt><dd class="num" style="margin:0">${visTxt}</dd>
+          <dt class="muted">Culmine</dt><dd class="num" style="margin:0">${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}</dd>
+          <dt class="muted">Lune</dt><dd style="margin:0">${moonWord(nm)}${vis.moonUp > 0.2 ? `, ${hm(vis.moonUp)} pendant la fenêtre, ${Math.round(vis.moonSepMin)}° au plus près` : ", absente de la fenêtre"}</dd>
+          <dt class="muted">Fond de ciel</dt><dd class="num" style="margin:0">≈ ${fmt(vis.sky, 1)} mag/″²</dd>
+          <dt class="muted">RA / DEC</dt><dd class="num" style="margin:0">${raStr(vis.ra)} · ${decStr(vis.dec)}</dd>
+        </dl>
+        <p style="margin:10px 0 0"><a href="#nuits">Voir les meilleures nuits pour ${esc(o[0])}</a></p></div>
+    </div>
+    <h2 style="margin-top:22px">Avec quel instrument ?</h2>
+    <div class="stack" style="margin-top:10px">${rigs.map((a, i) => `
+      <article class="rig ${i === 0 ? "best" : ""}">
+        <div class="frame">${frameSvg(a, o)}</div>
+        <div><h3>${esc(a.r.name)} ${i === 0 ? '<span class="badge">conseillé</span>' : ""}</h3>
+          <dl>
+            <dt>Champ</dt><dd class="num">${fmt(a.fov.w, 2)}° × ${fmt(a.fov.h, 2)}° · ${fmt(a.fov.scale, 2)}″/px</dd>
+            <dt>Filtre</dt><dd>${esc(FILTERS[a.filt].name)}</dd>
+            <dt>Poses</dt><dd><span class="num">${a.sub} s</span> · ${esc(a.gain)} <span class="muted">(limite : ${a.why === "rotation de champ" ? "rotation de champ" : a.why})</span></dd>
+            <dt>Temps total</dt><dd><span class="num">${hm(a.hours)}</span>, soit ${a.nSubs} poses${vis.usable > 0 ? ` ; ce soir : ${a.tonightSubs}` : ""}</dd>
+            <dt>Monture</dt><dd>${esc(a.r.mount)}${a.r.guided ? ", guidage " + esc(a.r.guided) : ""}</dd>
+          </dl>
+          ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+          ${i === 0 ? `<details style="margin-top:10px"><summary>Fiche de soirée</summary><pre class="sheet" id="sheetTxt">${esc(sheet(o, vis, nm, a))}</pre><button class="btn" type="button" id="copySheet">Copier la fiche</button> <span class="muted" id="copyMsg"></span></details>` : ""}
+        </div></article>`).join("") || '<p class="note">Aucun instrument coché dans « Matériel et lieu ».</p>'}</div>`;
+  const cb = $("#copySheet");
+  if (cb) cb.addEventListener("click", async () => {
+    const txt = $("#sheetTxt").textContent;
+    try { await navigator.clipboard.writeText(txt); $("#copyMsg").textContent = "Fiche copiée"; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($("#sheetTxt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#copyMsg").textContent = "Texte sélectionné : Ctrl+C pour copier"; }
+  });
+}
+
+// ---- Meilleures nuits
+function renderNights() {
+  const o = current, pane = $("#nightsPane");
+  if (!o) { $("#nightsTitle").textContent = "Meilleures nuits"; pane.innerHTML = `<p class="note">Choisissez d'abord une cible (onglet « Cible » ou « Ce soir »).</p>`; return; }
+  $("#nightsTitle").textContent = `Meilleures nuits pour ${o[0]}`;
+  const n = Number($("#nightsSpan").value), start = dateValue(), emi = EMISSION.has(o[2]);
+  const [y, m, d] = start.split("-").map(Number), rows = [];
+  for (let i = 0; i < n; i++) {
+    const day = new Date(y, m - 1, d + i), ds = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+    const nm = nightModel(ds, 15), vis = visibility(o, nm);
+    const moonHit = vis.usable > 0 ? (vis.moonUp / vis.usable) * nm.moonIllum : 0;
+    const quality = vis.usable * (1 - (emi ? 0.4 : 0.9) * moonHit);
+    rows.push({ ds, t: nm.t0, vis, nm, quality, moonHit });
+  }
+  const mx = Math.max(0.01, ...rows.map(r => r.quality));
+  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Soirée</th><th class="num">Fenêtre utile</th><th class="num">Durée</th><th>Lune</th><th class="num">Fond</th><th>Qualité</th></tr></thead><tbody>
+    ${rows.map(r => `<tr class="click" data-date="${r.ds}" tabindex="0"><td>${dayFr(r.t)}</td><td class="num">${r.vis.usable ? `${hhmm(r.vis.wStart)} – ${hhmm(r.vis.wEnd)}` : "—"}</td><td class="num">${r.vis.usable ? hm(r.vis.usable) : "—"}</td>
+      <td>${Math.round(r.nm.moonIllum * 100)} %${r.vis.moonUp > 0.2 ? `, levée ${hm(r.vis.moonUp)}` : ", absente"}</td><td class="num">${fmt(r.vis.sky, 1)}</td>
+      <td><div class="bar" title="${fmt(r.quality, 1)} h utiles équivalentes"><i style="width:${Math.round(100 * r.quality / mx)}%"></i></div></td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">Qualité : heures de nuit noire au-dessus de ${S.minAlt}°, réduites par la Lune ${emi ? "(modérément : cible en émission, filtre bi-bande)" : "(fortement : cible à photographier sans filtre)"}. La météo n'est pas prise en compte : consultez <a href="https://clearoutside.com/forecast/${fmt(S.lat, 2).replace(",", ".")}/${fmt(S.lon, 2).replace(",", ".")}" target="_blank" rel="noopener">Clear Outside</a> pour les prochains jours. Cliquez sur une soirée pour l'ouvrir.</p>`;
+}
+
+// ---- Matériel
+function renderGear() {
+  $("#lat").value = S.lat; $("#lon").value = S.lon; $("#siteName").value = S.siteName;
+  $("#bortle").innerHTML = Object.keys(SQM).map(b => `<option value="${b}" ${Number(b) === Number(S.bortle) ? "selected" : ""}>${b} — ${["", "excellent", "très noir", "rural", "rural/périurbain", "périurbain", "banlieue claire", "banlieue/ville", "ville", "centre-ville"][b]} (${fmt(SQM[b], 1)})</option>`).join("");
+  $("#seeing").value = String(S.seeing); $("#dwarfEq").value = String(S.dwarfEq);
+  $("#gearList").innerHTML = RIGS.map(r => { const f = rigFov(r), c = CAMS[r.cam];
+    return `<label class="rigrow" for="rig-${r.id}"><input type="checkbox" id="rig-${r.id}" data-rig="${r.id}" ${S.rigs.includes(r.id) ? "checked" : ""}>
+      <span><strong>${esc(r.name)}</strong><br><span class="spec">${r.dwarf ? "" : `F/D ${fmt(r.F / r.D, 1)} · `}champ ${fmt(f.w, 2)}° × ${fmt(f.h, 2)}° · ${fmt(f.scale, 2)}″/px · ${esc(r.mount)}${r.guided ? " · guidage " + esc(r.guided) : r.dwarf ? "" : " · sans guidage"}${r.load ? ` · charge ≈ ${fmt(r.load, 1)} / ${fmt(r.cap, 1)} kg` : ""}</span></span></label>`; }).join("");
+  $("#siteLabel").textContent = S.siteName;
+  $("#wxLink").href = `https://clearoutside.com/forecast/${Number(S.lat).toFixed(2)}/${Number(S.lon).toFixed(2)}`;
+}
+
+// ---------------------------------------------------------------- navigation
+const VIEWS = ["ce-soir", "cible", "nuits", "materiel"];
+function currentView() { const h = location.hash.slice(1); return VIEWS.includes(h) ? h : "ce-soir"; }
+function show() {
+  const v = currentView();
+  for (const x of VIEWS) $("#v-" + x).hidden = x !== v;
+  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.view === v ? "page" : "false"));
+  if (v === "ce-soir") renderTonight();
+  if (v === "cible") renderTarget();
+  if (v === "nuits") renderNights();
+  if (v === "materiel") renderGear();
+}
+function refreshAll() { S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); renderNightbar(); renderTypeChips(); show(); }
+function openTarget(id) { current = CATALOG.find(o => o[0] === id) || current; try { sessionStorage.setItem("astroplan-target", current[0]); } catch (e) {}
+  if (location.hash !== "#cible") location.hash = "cible"; else show(); }
+
+// ---------------------------------------------------------------- événements
+function today() { const d = new Date(); if (d.getHours() < 9) d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+$("#date").value = today();
+$("#date").addEventListener("change", refreshAll);
+$("#minAlt").addEventListener("change", refreshAll);
+$("#nightsSpan").addEventListener("change", renderNights);
+$("#redBtn").addEventListener("click", () => { const on = document.body.classList.toggle("red"); $("#redBtn").setAttribute("aria-pressed", on);
+  try { localStorage.setItem("astroplan-red", on ? "1" : ""); } catch (e) {} });
+window.addEventListener("hashchange", show);
+$("#typeChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; typeFilter = b.dataset.k; renderTypeChips(); renderTonight(); });
+$("#rigChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; rigFilter = b.dataset.k; renderTypeChips(); renderTonight(); });
+const rowOpen = e => { const tr = e.target.closest("tr[data-id]"); if (tr && (e.type === "click" || e.key === "Enter")) openTarget(tr.dataset.id); };
+$("#tonightBody").addEventListener("click", rowOpen); $("#tonightBody").addEventListener("keydown", rowOpen);
+const nightOpen = e => { const tr = e.target.closest("tr[data-date]"); if (tr && (e.type === "click" || e.key === "Enter")) { $("#date").value = tr.dataset.date; S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); renderNightbar(); location.hash = "cible"; } };
+$("#nightsPane").addEventListener("click", nightOpen); $("#nightsPane").addEventListener("keydown", nightOpen);
+// recherche
+const q = $("#q"), sugg = $("#sugg");
+q.addEventListener("input", () => { const res = findObjects(q.value); sugg.hidden = !res.length;
+  sugg.innerHTML = res.map(o => `<button type="button" data-id="${esc(o[0])}"><strong>${esc(o[0])}</strong>${o[1] ? " · " + esc(o[1]) : ""} <span class="muted">${esc(label(o))}</span></button>`).join(""); });
+q.addEventListener("keydown", e => { if (e.key === "Enter") { const r = findObjects(q.value); if (r[0]) { sugg.hidden = true; q.value = ""; openTarget(r[0][0]); } } });
+sugg.addEventListener("click", e => { const b = e.target.closest("button[data-id]"); if (!b) return; sugg.hidden = true; q.value = ""; openTarget(b.dataset.id); });
+document.addEventListener("click", e => { if (!e.target.closest(".search")) sugg.hidden = true; });
+// réglages
+function onSetting() {
+  const lat = parseFloat($("#lat").value), lon = parseFloat($("#lon").value);
+  if (isFinite(lat) && Math.abs(lat) <= 90) S.lat = lat;
+  if (isFinite(lon) && Math.abs(lon) <= 180) S.lon = lon;
+  S.siteName = $("#siteName").value.trim() || "Mon lieu";
+  S.bortle = Number($("#bortle").value); S.seeing = Number($("#seeing").value); S.dwarfEq = Number($("#dwarfEq").value);
+  S.rigs = [...document.querySelectorAll("[data-rig]")].filter(c => c.checked).map(c => c.dataset.rig);
+  saveSettings(); $("#siteLabel").textContent = S.siteName;
+  NM = nightModel(dateValue()); renderNightbar(); renderTypeChips();
+}
+for (const id of ["lat", "lon", "siteName", "bortle", "seeing", "dwarfEq"]) $("#" + id).addEventListener("change", onSetting);
+$("#gearList").addEventListener("change", onSetting);
+
+// ---------------------------------------------------------------- démarrage
+loadLocal();
+try { if (localStorage.getItem("astroplan-red")) { document.body.classList.add("red"); $("#redBtn").setAttribute("aria-pressed", "true"); } } catch (e) {}
+try { const t = sessionStorage.getItem("astroplan-target"); if (t) current = CATALOG.find(o => o[0] === t) || null; } catch (e) {}
+if (!current) current = CATALOG.find(o => o[0] === "NGC 7380");
+refreshAll();
+// réglages partagés entre l'ordinateur et le téléphone
+(async () => {
+  try {
+    const db = window.claude && await window.claude.use("db");
+    if (!db) return;
+    dbDoc = db.doc("config/settings");
+    const snap = await dbDoc.get();
+    if (snap.exists) { Object.assign(S, snap.data()); saveLocal(); refreshAll(); }
+  } catch (e) {}
+})();
+</script>
+
+</body></html>
