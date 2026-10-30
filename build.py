@@ -6,6 +6,9 @@ import os
 here = os.path.dirname(os.path.abspath(__file__))
 src = lambda *p: open(os.path.join(here, "src", *p), encoding="utf-8").read()
 page = src("template.html").replace("/*CATALOG*/[]", src("catalog.json")).replace("/*SKY*/null", src("sky.json"))
+# bibliothèques tierces (MIT) : Astronomy Engine (Soleil, Lune, planètes, éclipses) et satellite.js (SGP4)
+vendor = "".join(f"<script>\n{src('vendor', n)}\n</script>\n" for n in ("astronomy.browser.min.js", "satellite.js"))
+page = page.replace("<!--VENDOR-->", vendor)
 head = (
     '<meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'

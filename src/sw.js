@@ -42,12 +42,12 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/sw.js")) return;
-    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json") || url.pathname.endsWith("astrobin.json")) {
+    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json") || url.pathname.endsWith("astrobin.json") || url.pathname.endsWith("space.json")) {
       e.respondWith(networkFirst(req, true)); return;
     }
     e.respondWith(cacheFirst(req)); return;
   }
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") { e.respondWith(cacheFirst(req)); return; }
   if (url.hostname === "api.open-meteo.com") { e.respondWith(networkFirst(req, true)); return; }
-  // images du ciel et vignettes AstroBin : laissées au navigateur
+  // images du ciel, image du Soleil (SDO) et vignettes AstroBin : laissées au navigateur
 });

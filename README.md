@@ -8,6 +8,8 @@ Elle complète [AstroCheck](https://github.com/nunux1971/astrocheck), qui trie e
 
 ## Ce qu'elle fait
 
+- **Système solaire** : Soleil, Lune, planètes et comètes brillantes comme cibles à part entière, avec un tableau en tête de « Ce soir » : fenêtre, hauteur, taille du disque, et conseils adaptés (vidéo et Barlow pour les planètes, mosaïque pour la Lune, empilement sur le noyau pour les comètes, **filtre solaire obligatoire** et avertissements pour le Soleil, image du jour du satellite SDO).
+- **Alertes** : éclipses de Lune et de Soleil visibles d'ici (heures locales, pourcentage), **passages de l'ISS et de Tiangong** et leurs **transits devant le Soleil ou la Lune** (avec la distance à parcourir si la bande passe à côté), taches solaires et indice Kp (aurores), oppositions, élongations, rapprochements de planètes, la Lune près des planètes et des étoiles brillantes, étoiles filantes. Le bouton **Ajouter à mon agenda** télécharge un fichier `.ics` avec rappels pour le téléphone.
 - **Ce soir** : les meilleures cibles de la nuit, avec leur fenêtre au-dessus de la hauteur minimale, la gêne de la Lune et l'instrument conseillé. Filtres par type d'objet et par instrument.
 - **Carte du ciel** : le ciel vu en levant la tête à l'heure choisie (curseur sur toute la nuit), avec étoiles, constellations, Lune, horizon local et vos cibles ; zoom au doigt ou à la molette, et une touche sur une cible ouvre sa fiche.
 - **Cible** : courbe de hauteur pendant la nuit, classement des instruments avec aperçu du cadrage, filtre, pose unitaire, temps total conseillé, retournement au méridien, rotation de champ du Dwarf 3, et une fiche de soirée à copier.
@@ -68,6 +70,20 @@ Puis, pour une mise à jour chaque heure :
 echo "17 * * * * root python3 /var/www/astroplan/tools/astrobin_sync.py VOTRE_NOM_ASTROBIN >/dev/null 2>&1" | sudo tee /etc/cron.d/astroplan-astrobin
 ```
 
+## ISS, comètes, taches solaires (space.json)
+
+Les orbites de l'ISS et de Tiangong (CelesTrak), des comètes (Minor Planet Center), le nombre de taches solaires et l'indice Kp (NOAA SWPC, ou SILSO en secours) sont récupérés par un script sur le serveur, qui écrit `site/space.json`. Sans ce fichier, éclipses, planètes, Lune, Soleil et événements fonctionnent quand même.
+
+```bash
+sudo python3 /var/www/astroplan/tools/space_sync.py --debug
+```
+
+Puis, toutes les six heures (les orbites de l'ISS vieillissent vite) :
+
+```bash
+echo "23 */6 * * * root python3 /var/www/astroplan/tools/space_sync.py >/dev/null 2>&1" | sudo tee /etc/cron.d/astroplan-space
+```
+
 ## Modifier le matériel ou le catalogue
 
 La page est assemblée à partir de `src/template.html` (interface, calculs, liste du matériel) et `src/catalog.json` (catalogue d'objets) :
@@ -82,8 +98,10 @@ Le code d'AstroPlan est distribué sous licence [GPL-2.0](LICENSE).
 
 Prévisions météo : [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Étoiles et constellations : [d3-celestial](https://github.com/ofrohn/d3-celestial) d'Olaf Frohn (licence BSD, voir `src/LICENSE-d3-celestial`). Images du ciel : [NASA SkyView](https://skyview.gsfc.nasa.gov) et [CDS, Strasbourg](https://alasky.cds.unistra.fr) (relevés DSS2 et Mellinger).
 
+Soleil, Lune, planètes et éclipses : [Astronomy Engine](https://github.com/cosinekitty/astronomy) de Don Cross (MIT, `src/vendor/LICENSE-astronomy-engine.txt`). Satellites : [satellite.js](https://github.com/shashwatak/satellite-js) (MIT, `src/vendor/LICENSE-satellite-js.md`), regroupé par `tools/bundle_satellite.js` et vérifié sur les 130 000 cas de test SGP4 officiels. Orbites : [CelesTrak](https://celestrak.org) et [Minor Planet Center](https://minorplanetcenter.net). Taches et Kp : [NOAA SWPC](https://www.swpc.noaa.gov) et [SILSO](https://www.sidc.be/SILSO). Image du Soleil : [NASA SDO](https://sdo.gsfc.nasa.gov).
+
 Le catalogue NGC/IC et Messier provient d'[OpenNGC](https://github.com/mattiaverga/OpenNGC) de Mattia Verga, sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Les coordonnées des nébuleuses Sharpless ajoutées sont approchées.
 
 ## English
 
-AstroPlan is also available in English: the page follows the language of the phone or browser, and the **FR / EN** button in the header switches it by hand. It plans an astrophotography session for a chosen evening and site: tonight's best targets, an interactive sky map, the best rig, filter, sub length and total time for each target, the best nights ahead (Moon and 16-day cloud forecast), a real-sky framing preview, a local horizon, and a progress log fed by [AstroCheck](https://github.com/nunux1971/astrocheck). It installs as an app on Android (Chrome ▸ *Install app*) and works offline once loaded.
+AstroPlan is also available in English: the page follows the language of the phone or browser, and the **FR / EN** button in the header switches it by hand. It plans an astrophotography session for a chosen evening and site: tonight's best targets (deep sky, plus the Sun, Moon, planets and bright comets), an Alerts tab (eclipses, ISS and Tiangong passes and transits across the Sun or Moon, sunspots and aurora index, planetary events, meteor showers, with a calendar export), an interactive sky map, the best rig, filter, sub length and total time for each target, the best nights ahead (Moon and 16-day cloud forecast), a real-sky framing preview, a local horizon, and a progress log fed by [AstroCheck](https://github.com/nunux1971/astrocheck). It installs as an app on Android (Chrome ▸ *Install app*) and works offline once loaded.
