@@ -54,6 +54,27 @@ On peut aussi simplement ouvrir `site/index.html` dans un navigateur, même sans
 
 Ouvrez l'adresse du site dans Chrome, puis **Installer l'application** (bouton dans la page, ou menu ⋮ ▸ *Installer l'application*). AstroPlan s'ouvre alors en plein écran depuis son icône et **fonctionne hors ligne** une fois chargée une première fois avec du réseau. Elle se met à jour toute seule après un `git pull` sur le serveur. Le site doit être servi en HTTPS.
 
+## Vos images AstroBin
+
+AstroPlan peut afficher, sur la fiche de chaque cible, vos images publiées sur [AstroBin](https://www.astrobin.com), retrouvées grâce aux objets que la résolution astrométrique d'AstroBin a reconnus (ou au titre). La clé d'API reste sur le serveur : un petit script interroge AstroBin et écrit `site/astrobin.json`, que la page lit.
+
+1. Demandez une clé d'API sur https://www.astrobin.com/api/request-key/ (clé et secret).
+2. Sur le serveur, créez `/etc/astroplan/astrobin.conf`, lisible par root seulement :
+   ```ini
+   [astrobin]
+   username = votre_nom_astrobin
+   api_key = ...
+   api_secret = ...
+   ```
+   ```bash
+   sudo chmod 600 /etc/astroplan/astrobin.conf
+   ```
+3. Testez, puis programmez une mise à jour chaque heure :
+   ```bash
+   sudo python3 /var/www/astroplan/tools/astrobin_sync.py
+   echo "17 * * * * root python3 /var/www/astroplan/tools/astrobin_sync.py >/dev/null 2>&1" | sudo tee /etc/cron.d/astroplan-astrobin
+   ```
+
 ## Modifier le matériel ou le catalogue
 
 La page est assemblée à partir de `src/template.html` (interface, calculs, liste du matériel) et `src/catalog.json` (catalogue d'objets) :

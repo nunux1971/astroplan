@@ -150,6 +150,10 @@ pre.sheet { white-space: pre-wrap; font: 13px/1.55 var(--f-mono); background: va
 .maptime { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; margin: 10px 0 }
 .maptime input[type=range] { width: 100% }
 .legendmap { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 8px }
+.abgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 10px }
+.abgrid a { display: grid; gap: 4px; text-decoration: none; color: var(--ink); font-size: 13px }
+.abgrid img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 6px; background: var(--night); display: block }
+.abgrid .muted { font-size: 12px }
 .drop { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; text-align: center; color: var(--muted); background: var(--panel) }
 .drop.over { border-color: var(--accent); color: var(--ink) }
 footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80ch }
@@ -637,6 +641,27 @@ async function loadJournalServer() {   // journal.json posé à côté de la pag
   try { const r = await fetch("journal.json", { cache: "no-store" }); if (r.ok) { mergeJournal(journalEntries(await r.json())); return true; } } catch (e) {}
   return false;
 }
+// ---------------------------------------------------------------- vos images AstroBin (astrobin.json écrit sur le serveur)
+let ASTROBIN = null;
+async function loadAstrobin() {
+  try { const r = await fetch("astrobin.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); ASTROBIN = j && Array.isArray(j.images) ? j : null; } } catch (e) {}
+}
+function astrobinFor(o) {
+  if (!ASTROBIN) return [];
+  const keys = new Set([o[0], o[1], o[9], o[11]].filter(Boolean).map(normName));
+  const ids = [o[0], o[1]].filter(Boolean).map(normName);
+  return ASTROBIN.images.filter(im => (im.subjects || []).some(sj => keys.has(normName(sj)))
+    || ids.some(k => normName(im.title).includes(k) && !/\d/.test(normName(im.title).split(k)[1]?.[0] || "")));
+}
+function astrobinCard(o) {
+  if (!ASTROBIN) return "";
+  const ims = astrobinFor(o);
+  const head = `<h3>${L("Mes images AstroBin", "My AstroBin images")}${ims.length ? ` <span class="muted">(${ims.length})</span>` : ""}</h3>`;
+  if (!ims.length) return `<div class="card" style="margin-top:16px">${head}<p class="note" style="margin:6px 0 0">${L(`Aucune image de ${esc(o[0])} sur votre compte AstroBin pour l'instant.`, `No image of ${esc(o[0])} on your AstroBin account yet.`)}</p></div>`;
+  return `<div class="card" style="margin-top:16px">${head}<div class="abgrid">${ims.slice(0, 12).map(im => `
+    <a href="${esc(im.page)}" target="_blank" rel="noopener"><img src="${esc(im.thumb)}" alt="${esc(im.title)}" loading="lazy">
+      <span>${esc(im.title)}</span><span class="muted">${im.date ? new Date(im.date + "T12:00").toLocaleDateString(LOCALE) : ""}</span></a>`).join("")}</div></div>`;
+}
 function journalFor(o) {
   const keys = new Set([o[0], o[1], o[9], o[11]].filter(Boolean).map(normName));
   const es = JOURNAL.filter(e => keys.has(normName(e.object)));
@@ -933,6 +958,7 @@ function renderTarget() {
         </dl>
         <p style="margin:10px 0 0"><a href="#nuits">${L(`Voir les meilleures nuits pour ${esc(o[0])}`, `See the best nights for ${esc(o[0])}`)}</a></p></div>
     </div>
+    ${astrobinCard(o)}
     <div class="card" style="margin-top:16px"><h3>${L("Aperçu dans l'instrument", "Preview in the rig")}</h3>
       <div class="preview" style="margin-top:10px">
         <div><div class="skybox" id="skybox"></div></div>
@@ -1168,7 +1194,7 @@ function renderJournal() {
     }
     return { o: null, es, secs, nights, last, goal, rigName, left: null, usable: 0 };
   }).sort((a, b) => (b.last || "").localeCompare(a.last || ""));
-  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>${L("Cible", "Target")}</th><th>${L("Séries", "Series")}</th><th class="num">${L("Gardé", "Kept")}</th><th>${L("Progression", "Progress")}</th><th>${L("Reste", "Remaining")}</th><th class="num">${L("Dernière nuit", "Last night")}</th></tr></thead><tbody>
+  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>${L("Cible", "Target")}</th><th>${L("Séries", "Series")}</th><th class="num">${L("Gardé", "Kept")}</th><th>${L("Progression", "Progress")}</th><th>${L("Reste", "Remaining")}</th><th class="num">${L("Dernière nuit", "Last night")}</th>${ASTROBIN ? "<th>AstroBin</th>" : ""}</tr></thead><tbody>
     ${rows.map(r => { const name = r.o ? r.o[0] : r.es[0].object, pct = r.goal ? Math.min(1, r.secs / 3600 / r.goal) : 0;
       const series = [...new Set(r.es.map(e => [e.camera, e.filter, e.exptime ? fmt(e.exptime, 0) + " s" : ""].filter(Boolean).join(" · ")))].join("<br>");
       const rest = r.left == null ? "—" : r.left <= 0.05 ? `<span class="pill good">${L("objectif atteint", "goal reached")}</span>`
@@ -1176,7 +1202,7 @@ function renderJournal() {
       return `<tr ${r.o ? `class="click" data-id="${esc(r.o[0])}" tabindex="0"` : ""}><td><div class="obj">${esc(name)}<small>${esc(r.o ? label(r.o) : L("hors catalogue", "not in catalogue"))}</small></div></td>
         <td class="muted" style="font-size:13px">${series}</td><td class="num">${hm(r.secs / 3600)}<br><span class="muted">${r.nights} ${L("nuit", "night")}${r.nights > 1 ? "s" : ""}</span></td>
         <td>${r.goal ? `<div class="progress"><div class="bar"><i style="width:${Math.round(pct * 100)}%"></i></div><span class="muted" style="font-size:12px">${L("objectif", "goal")} ${hm(r.goal)}${r.rigName ? " · " + esc(r.rigName) : ""}</span></div>` : "—"}</td>
-        <td>${rest}</td><td class="num">${r.last ? new Date(r.last + "T12:00").toLocaleDateString(LOCALE) : "—"}</td></tr>`; }).join("")}
+        <td>${rest}</td><td class="num">${r.last ? new Date(r.last + "T12:00").toLocaleDateString(LOCALE) : "—"}</td>${ASTROBIN ? `<td>${r.o && astrobinFor(r.o).length ? `<span class="pill good">${astrobinFor(r.o).length} image${astrobinFor(r.o).length > 1 ? "s" : ""}</span>` : '<span class="muted">—</span>'}</td>` : ""}</tr>`; }).join("")}
   </tbody></table></div>`;
 }
 async function importJournalFile(file) {
@@ -1345,7 +1371,7 @@ try { const t = sessionStorage.getItem("astroplan-target"); if (t) current = CAT
 if (!current) current = CATALOG.find(o => o[0] === "NGC 7380");
 refreshAll();
 // météo et journal du serveur, puis nouvel affichage
-Promise.all([loadWeather(), loadJournalServer()]).then(() => { renderNightbar(); show(); });
+Promise.all([loadWeather(), loadJournalServer(), loadAstrobin()]).then(() => { renderNightbar(); show(); });
 setInterval(() => loadWeather().then(() => renderNightbar()), 30 * 60e3);
 // réglages partagés entre l'ordinateur et le téléphone
 (async () => {
