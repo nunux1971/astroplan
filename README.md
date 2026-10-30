@@ -16,12 +16,35 @@ Elle complète [AstroCheck](https://github.com/nunux1971/astrocheck), qui trie e
 - **Meilleures nuits** : les 14 à 60 prochaines soirées pour une cible, selon la nuit noire et la Lune.
 - **Aperçu dans l'instrument** : le champ de chaque instrument posé sur une image du ciel réel (relevés DSS2 et Mellinger, via NASA SkyView ou le CDS de Strasbourg), en vue large ou au format du capteur, avec la rotation du capteur réglable.
 - **Météo** (Open-Meteo, 16 jours) : nuages bas, moyens et hauts, vent, et alerte de **buée** quand la température approche du point de rosée. Les nuages prévus entrent dans la note des meilleures nuits.
+- **Projets** : vos cibles en cours, en envie ou terminées, marquées d'une ★ ; pour chacune, l'avancement d'après le journal, la fenêtre de ce soir, la meilleure nuit des 14 prochaines et une note. Le filtre « ★ Mes projets » de « Ce soir » ne garde qu'elles.
 - **Journal** : le temps de pose déjà gardé par cible, d'après le journal écrit par AstroCheck, face au temps conseillé, avec le nombre de nuits restantes.
 - **Matériel et lieu** : coordonnées, ciel (échelle de Bortle), turbulence, **horizon local** (hauteur des obstacles dans 16 directions), instruments emportés.
 - **Mode rouge** pour garder la vision nocturne sur le terrain.
 - **Français ou anglais** : la page suit la langue du téléphone, et le bouton FR / EN change de langue.
 
 Les poses et temps totaux sont des ordres de grandeur pour le ciel indiqué. La météo et l'aperçu du ciel demandent que la page puisse joindre `api.open-meteo.com` et `skyview.gsfc.nasa.gov` (ou `alasky.cds.unistra.fr`) ; sans connexion, tout le reste fonctionne.
+
+## Projets partagés entre l'ordinateur et le téléphone
+
+Les projets sont gardés dans le navigateur, et dans `projects.json` sur le serveur si nginx en accepte l'écriture (module WebDAV, inclus dans le nginx de Debian). Dans `/etc/nginx/sites-available/astroplan`, à côté de `location = /sw.js` :
+
+```nginx
+location = /projects.json {
+    alias /var/www/astroplan/data/projects.json;
+    dav_methods PUT;
+    client_max_body_size 1m;
+    add_header Cache-Control "no-cache";
+}
+```
+
+puis :
+
+```bash
+sudo mkdir -p /var/www/astroplan/data && sudo chown www-data: /var/www/astroplan/data
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+L'authentification de la page protège aussi ce fichier. Sans cette configuration, l'onglet Projets indique que les projets restent sur l'appareil.
 
 ## Journal des séances
 
@@ -30,6 +53,8 @@ AstroCheck écrit `~/.config/astrocheck/journal.json` à chaque export (ou par C
 ```bash
 scp ~/.config/astrocheck/journal.json serveur:/var/www/astroplan/site/journal.json
 ```
+
+Ou automatiquement : dans AstroCheck, **Analyse ▸ Envoi automatique du journal au serveur…** (voir sa notice).
 
 ## Installation sur un serveur web (Debian + nginx)
 
