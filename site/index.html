@@ -779,10 +779,18 @@ function journalText(o, best) {
 }
 // ---- aperçu sur le ciel réel (hips2fits du CDS)
 const pvState = { rig: null, angle: 0, mode: "wide" };
-const HIPS_HOSTS = ["https://alasky.cds.unistra.fr", "https://alaskybis.cds.unistra.fr"];
+// sources d'images du ciel, essayées dans l'ordre : NASA SkyView, puis le CDS et son miroir
+const HIPS_HOSTS = ["skyview", "https://alasky.cds.unistra.fr", "https://alaskybis.cds.unistra.fr"];
+const HOST_NAMES = ["NASA SkyView", "CDS de Strasbourg", "miroir du CDS"];
 function hipsUrl(ra, dec, fov, w, h, host = 0) {
+  w = Math.round(w); h = Math.round(h);
+  if (HIPS_HOSTS[host] === "skyview") {
+    const survey = fov > 8 ? "Mellinger Red" : "DSS2 Red";
+    const fovH = fov * h / w;
+    return `https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl?Survey=${encodeURIComponent(survey)}&Position=${ra.toFixed(5)},${dec.toFixed(5)}&Coordinates=J2000&Projection=Tan&Size=${fov.toFixed(4)},${fovH.toFixed(4)}&Pixels=${w},${h}&Return=JPEG`;
+  }
   const survey = fov > 8 ? "CDS/P/Mellinger/color" : "CDS/P/DSS2/color";
-  return `${HIPS_HOSTS[host]}/hips-image-services/hips2fits?hips=${encodeURIComponent(survey)}&width=${Math.round(w)}&height=${Math.round(h)}&fov=${fov.toFixed(4)}&projection=TAN&coordsys=icrs&ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&format=jpg`;
+  return `${HIPS_HOSTS[host]}/hips-image-services/hips2fits?hips=${encodeURIComponent(survey)}&width=${w}&height=${h}&fov=${fov.toFixed(4)}&projection=TAN&coordsys=icrs&ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&format=jpg`;
 }
 // charge l'image du ciel : délai d'attente, puis miroir du CDS, puis message clair
 function loadSky(box, img, makeUrl) {
@@ -792,14 +800,15 @@ function loadSky(box, img, makeUrl) {
     clearTimeout(timer); clearInterval(tick);
     if (host + 1 < HIPS_HOSTS.length) { host++; try_(); return; }
     img.remove();
-    msg.innerHTML = `Image du ciel indisponible pour l'instant : le service du CDS de Strasbourg ne répond pas.<br><a href="${makeUrl(0)}" target="_blank" rel="noopener">Ouvrir l'image directement</a>`;
+    msg.innerHTML = `Image du ciel indisponible pour l'instant : ni NASA SkyView ni le CDS ne répondent.<br><a href="${makeUrl(0)}" target="_blank" rel="noopener">Ouvrir l'image directement</a>`;
   };
   const try_ = () => {
     t0 = Date.now();
-    msg.textContent = host ? "Le serveur principal tarde : essai sur le miroir du CDS…" : "Chargement de l'image du ciel…";
-    tick = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); if (s >= 4) msg.textContent = `${host ? "Miroir du CDS" : "Chargement de l'image du ciel"}… ${s} s`; }, 1000);
+    msg.textContent = host ? `Pas de réponse : essai sur ${HOST_NAMES[host]}…` : "Chargement de l'image du ciel…";
+    tick = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); if (s >= 4) msg.textContent = `Image du ciel (${HOST_NAMES[host]})… ${s} s`; }, 1000);
     timer = setTimeout(fail, 25000);
-    img.onload = () => { clearTimeout(timer); clearInterval(tick); msg.remove(); };
+    img.onload = () => { clearTimeout(timer); clearInterval(tick); msg.remove();
+      const src = box.querySelector(".src"); if (src) src.textContent = HOST_NAMES[host]; };
     img.onerror = fail;
     img.src = makeUrl(host);
   };
@@ -818,7 +827,7 @@ function drawPreview(o, rigs, onlyAngle) {
     const diag = Math.hypot(fw, fh), N = Math.min(900, Math.round(Math.hypot(W, H) * 1.05));
     let img = box.querySelector("img");
     if (!onlyAngle || !img) {
-      box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img alt="Ciel autour de ${esc(o[0])}" width="${N}" height="${N}"><span class="scale">${fmt(fw, 2)}° × ${fmt(fh, 2)}° · ${esc(a.r.short)}</span>`;
+      box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img alt="Ciel autour de ${esc(o[0])}" width="${N}" height="${N}"><span class="scale">${fmt(fw, 2)}° × ${fmt(fh, 2)}° · ${esc(a.r.short)} · <span class="src"></span></span>`;
       img = box.querySelector("img");
       loadSky(box, img, h => hipsUrl(ra, dec, diag * 1.05, N, N, h));
     }
@@ -831,7 +840,7 @@ function drawPreview(o, rigs, onlyAngle) {
     let img = box.querySelector("img.wide");
     if (!onlyAngle || !img) {
       const Wq = Math.min(900, Math.round(W * 1.2)), Hq = Math.round(Wq * 0.66);
-      box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img class="wide" alt="Ciel autour de ${esc(o[0])}" style="width:${W}px;height:${H}px;transform:translate(-50%,-50%)"><svg viewBox="0 0 ${W} ${H}"><g id="pvRect"></g></svg><span class="scale">champ affiché ${fmt(span, 1)}° · rectangle : ${esc(a.r.short)}</span>`;
+      box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img class="wide" alt="Ciel autour de ${esc(o[0])}" style="width:${W}px;height:${H}px;transform:translate(-50%,-50%)"><svg viewBox="0 0 ${W} ${H}"><g id="pvRect"></g></svg><span class="scale">champ affiché ${fmt(span, 1)}° · rectangle : ${esc(a.r.short)} · <span class="src"></span></span>`;
       img = box.querySelector("img");
       loadSky(box, img, h => hipsUrl(ra, dec, span, Wq, Hq, h));
     }
@@ -872,7 +881,7 @@ function renderTarget() {
           <div class="field"><label for="pvRig">Instrument</label><select id="pvRig">${rigs.map((a, i) => `<option value="${a.r.id}" ${a.r.id === (pvState.rig || rigs[0]?.r.id) ? "selected" : ""}>${esc(a.r.short)}${i === 0 ? " (conseillé)" : ""}</option>`).join("")}</select></div>
           <div class="chips" role="group" aria-label="Vue"><button class="chip" type="button" data-pv="sensor" aria-pressed="${pvState.mode === "sensor"}">Champ du capteur</button><button class="chip" type="button" data-pv="wide" aria-pressed="${pvState.mode === "wide"}">Vue large</button></div>
           <div class="field"><label for="pvAngle">Rotation du capteur : <span id="pvAngleV">${pvState.angle}</span>°</label><input type="range" id="pvAngle" min="0" max="179" step="1" value="${pvState.angle}"></div>
-          <p class="note" style="margin:0">Image du ciel réel (relevé DSS, ou Mellinger pour les très grands champs) fournie par le CDS de Strasbourg, nord en haut et est à gauche. Le rectangle est le champ de la caméra ; tournez-le pour trouver le meilleur cadrage, puis comparez avec votre première image pour reporter l'angle.</p>
+          <p class="note" style="margin:0">Image du ciel réel (relevé photographique DSS2, ou Mellinger pour les très grands champs), fournie par NASA SkyView ou, à défaut, par le CDS de Strasbourg ; nord en haut et est à gauche. Le rectangle est le champ de la caméra ; tournez-le pour trouver le meilleur cadrage, puis comparez avec votre première image pour reporter l'angle.</p>
         </div>
       </div></div>
     <h2 style="margin-top:22px">Avec quel instrument ?</h2>

@@ -11,13 +11,13 @@ Elle complète [AstroCheck](https://github.com/nunux1971/astrocheck), qui trie e
 - **Ce soir** : les meilleures cibles de la nuit, avec leur fenêtre au-dessus de la hauteur minimale, la gêne de la Lune et l'instrument conseillé. Filtres par type d'objet et par instrument.
 - **Cible** : courbe de hauteur pendant la nuit, classement des instruments avec aperçu du cadrage, filtre, pose unitaire, temps total conseillé, retournement au méridien, rotation de champ du Dwarf 3, et une fiche de soirée à copier.
 - **Meilleures nuits** : les 14 à 60 prochaines soirées pour une cible, selon la nuit noire et la Lune.
-- **Aperçu dans l'instrument** : le champ de chaque instrument posé sur une image du ciel réel (relevés DSS et Mellinger du CDS de Strasbourg), en vue large ou au format du capteur, avec la rotation du capteur réglable.
+- **Aperçu dans l'instrument** : le champ de chaque instrument posé sur une image du ciel réel (relevés DSS2 et Mellinger, via NASA SkyView ou le CDS de Strasbourg), en vue large ou au format du capteur, avec la rotation du capteur réglable.
 - **Météo** (Open-Meteo, 16 jours) : nuages bas, moyens et hauts, vent, et alerte de **buée** quand la température approche du point de rosée. Les nuages prévus entrent dans la note des meilleures nuits.
 - **Journal** : le temps de pose déjà gardé par cible, d'après le journal écrit par AstroCheck, face au temps conseillé, avec le nombre de nuits restantes.
 - **Matériel et lieu** : coordonnées, ciel (échelle de Bortle), turbulence, **horizon local** (hauteur des obstacles dans 16 directions), instruments emportés.
 - **Mode rouge** pour garder la vision nocturne sur le terrain.
 
-Les poses et temps totaux sont des ordres de grandeur pour le ciel indiqué. La météo et l'aperçu du ciel demandent que la page puisse joindre `api.open-meteo.com` et `alasky.cds.unistra.fr` ; sans connexion, tout le reste fonctionne.
+Les poses et temps totaux sont des ordres de grandeur pour le ciel indiqué. La météo et l'aperçu du ciel demandent que la page puisse joindre `api.open-meteo.com` et `skyview.gsfc.nasa.gov` (ou `alasky.cds.unistra.fr`) ; sans connexion, tout le reste fonctionne.
 
 ## Journal des séances
 
@@ -64,6 +64,6 @@ python3 build.py      # régénère site/index.html
 
 Le code d'AstroPlan est distribué sous licence [GPL-2.0](LICENSE).
 
-Prévisions météo : [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Images du ciel : [CDS, Strasbourg](https://alasky.cds.unistra.fr) (relevés DSS et Mellinger).
+Prévisions météo : [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Images du ciel : [NASA SkyView](https://skyview.gsfc.nasa.gov) et [CDS, Strasbourg](https://alasky.cds.unistra.fr) (relevés DSS2 et Mellinger).
 
 Le catalogue NGC/IC et Messier provient d'[OpenNGC](https://github.com/mattiaverga/OpenNGC) de Mattia Verga, sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Les coordonnées des nébuleuses Sharpless ajoutées sont approchées.
