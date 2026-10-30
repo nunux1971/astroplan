@@ -42,7 +42,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/sw.js")) return;
-    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json") || url.pathname.endsWith("astrobin.json") || url.pathname.endsWith("space.json")) {
+    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json") || url.pathname.endsWith("astrobin.json") || url.pathname.endsWith("space.json") || url.pathname.endsWith("projects.json")) {
       e.respondWith(networkFirst(req, true)); return;
     }
     e.respondWith(cacheFirst(req)); return;

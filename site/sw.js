@@ -1,6 +1,6 @@
 // AstroPlan : fonctionnement hors ligne.
 // La page vient du réseau quand il répond (mises à jour immédiates), sinon du cache.
-const CACHE = "astroplan-593260bc71";
+const CACHE = "astroplan-5a907c4af0";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png",
   "icons/maskable-192.png", "icons/maskable-512.png", "icons/apple-touch-icon.png"];
 
@@ -42,7 +42,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/sw.js")) return;
-    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json") || url.pathname.endsWith("astrobin.json") || url.pathname.endsWith("space.json")) {
+    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json") || url.pathname.endsWith("astrobin.json") || url.pathname.endsWith("space.json") || url.pathname.endsWith("projects.json")) {
       e.respondWith(networkFirst(req, true)); return;
     }
     e.respondWith(cacheFirst(req)); return;

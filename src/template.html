@@ -106,6 +106,11 @@ ul.hl li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px }
 ul.hl li.strong { border-left-color: var(--accent) }
 .tabbadge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--bg); font: 600 12px/18px var(--f-body); text-align: center; vertical-align: 2px }
 .tabbadge[hidden] { display: none }
+.thead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; justify-content: space-between }
+.star { color: var(--accent) }
+input.goal { width: 4.2em; padding: 1px 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; color: var(--ink); font: inherit }
+input.pnote { width: 100%; min-width: 130px; padding: 4px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; color: var(--ink); font: inherit; font-size: 13px }
+#projectsPane select { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 3px; color: var(--ink) }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0 }
 .card + .card { margin-top: 0 }
 .stack { display: grid; gap: 16px }
@@ -189,7 +194,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
     <a href="#cible" data-view="cible">Cible</a>
     <a href="#nuits" data-view="nuits">Meilleures nuits</a>
     <a href="#alertes" data-view="alertes"><span id="alertsTabLabel">Alertes</span> <span class="tabbadge" id="alertBadge" hidden></span></a>
-    <a href="#journal" data-view="journal">Journal</a>
+    <a href="#journal" data-view="journal">Projets</a>
     <a href="#materiel" data-view="materiel">Matériel et lieu</a>
   </nav>
 
@@ -263,12 +268,14 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
 
   <!-- JOURNAL -->
   <section class="view" id="v-journal" hidden>
-    <div class="toolbar"><h2 style="margin-right:auto">Journal des cibles</h2>
+    <div class="toolbar"><h2 style="margin-right:auto" id="projTitle">Mes projets</h2></div>
+    <div id="projectsPane"></div>
+    <div class="toolbar" style="margin-top:22px"><h2 style="margin-right:auto" id="journalTitle">Journal des cibles</h2>
       <label class="btn" for="journalFile">Importer un journal AstroCheck…</label>
       <input type="file" id="journalFile" accept=".json,application/json" hidden></div>
     <div id="journalPane"></div>
     <div class="drop" id="journalDrop" style="margin-top:12px">Déposez ici le fichier <span class="mono">journal.json</span> écrit par AstroCheck</div>
-    <p class="note" style="margin-top:10px">AstroCheck écrit ce journal à chaque export (et par Analyse ▸ Mettre à jour le journal AstroPlan) dans <span class="mono">~/.config/astrocheck/journal.json</span>. Sur votre serveur, copiez-le à côté de la page pour qu'il s'affiche partout :<br><span class="mono">scp ~/.config/astrocheck/journal.json serveur:/var/www/astroplan/site/journal.json</span></p>
+    <p class="note" style="margin-top:10px">AstroCheck écrit ce journal à chaque export (et par Analyse ▸ Mettre à jour le journal AstroPlan) dans <span class="mono">~/.config/astrocheck/journal.json</span>. Pour qu'il s'affiche partout, AstroCheck peut l'envoyer lui-même sur le serveur après chaque mise à jour : Analyse ▸ Envoi automatique du journal au serveur.</p>
   </section>
 
   <!-- MATERIEL -->
@@ -880,7 +887,7 @@ function wxStat(nm) {
 
 // ---- Ce soir
 function renderTypeChips() {
-  const opts = [["all", L("Tout", "All")], ["neb", L("Nébuleuses", "Nebulae")], ["gal", L("Galaxies", "Galaxies")], ["amas", L("Amas", "Clusters")]];
+  const opts = [["all", L("Tout", "All")], ["neb", L("Nébuleuses", "Nebulae")], ["gal", L("Galaxies", "Galaxies")], ["amas", L("Amas", "Clusters")], ["proj", L("★ Mes projets", "★ My projects")]];
   $("#typeChips").innerHTML = opts.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${typeFilter === k}">${l}</button>`).join("");
   const rigs = [["all", L("Tous mes instruments", "All my rigs")], ...RIGS.filter(r => S.rigs.includes(r.id)).map(r => [r.id, r.short])];
   if (!rigs.some(([k]) => k === rigFilter)) rigFilter = "all";
@@ -890,7 +897,7 @@ function renderTonight() {
   renderSolarTonight();
   const nm = NM, rows = [];
   for (const o of CATALOG) {
-    if (typeFilter !== "all" && FAMILY(o[2]) !== typeFilter) continue;
+    if (typeFilter === "proj" ? !projectOf(o) : (typeFilter !== "all" && FAMILY(o[2]) !== typeFilter)) continue;
     if (!o[5] && o[2] !== "PN") continue;
     const vis = visibility(o, nm);
     if (vis.usable < 1) continue;
@@ -906,7 +913,7 @@ function renderTonight() {
   const top = rows.slice(0, 40);
   $("#tonightBody").innerHTML = top.map(({ o, vis, b, w, j }) => `
     <tr class="click" data-id="${esc(o[0])}" tabindex="0">
-      <td><div class="obj">${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(label(o))}</small></div></td>
+      <td><div class="obj">${projectOf(o) ? '<span class="star" title="' + L("dans mes projets", "in my projects") + '">★</span> ' : ""}${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(label(o))}</small></div></td>
       <td>${esc(TYPES[o[2]] || o[2])}</td>
       <td class="num">${size(o)}</td>
       <td class="num">${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)}</td>
@@ -1041,7 +1048,7 @@ function renderSolarTonight() {
   rows.sort((a, b) => order[a.o.solar.kind] - order[b.o.solar.kind] || b.vis.usable - a.vis.usable);
   $("#solarBody").innerHTML = rows.map(({ o, vis, b }) => `
     <tr class="click" data-id="${esc(oid(o))}" tabindex="0">
-      <td><div class="obj">${o.solar.kind === "sun" ? "☀ " : ""}${esc(o[0])}<small>${esc(solarSub(o))}</small></div></td>
+      <td><div class="obj">${projectOf(o) ? '<span class="star">★</span> ' : ""}${o.solar.kind === "sun" ? "☀ " : ""}${esc(o[0])}<small>${esc(solarSub(o))}</small></div></td>
       <td class="num">${o[7] != null ? fmt(o[7], 1) : "—"}</td>
       <td class="num">${sizeSolar(o)}</td>
       <td class="num">${solarWindow(o, vis)}${o.solar.kind === "sun" ? `<br><span class="muted">${L("de jour", "daytime")}</span>` : ""}</td>
@@ -1077,7 +1084,7 @@ function renderSolarTarget(o) {
   if (f.dist != null) extra.push([L("Distance", "Distance"), s.kind === "moon" ? `${Math.round(f.dist * AU_KM).toLocaleString(LOCALE)} km` : `${fmt(f.dist, 3)} ${L("UA", "AU")}`]);
   if (s.kind === "comet") extra.push([L("Mouvement", "Motion"), L(`${fmt(f.rate, 1)}″ par minute`, `${fmt(f.rate, 1)}″ per minute`)]);
   if (isSun && ssn) extra.push([L("Taches solaires", "Sunspots"), L(`nombre de Wolf ${ssn.value} (${new Date(ssn.date + "T12:00").toLocaleDateString(LOCALE)})`, `sunspot number ${ssn.value} (${new Date(ssn.date + "T12:00").toLocaleDateString(LOCALE)})`)]);
-  pane.innerHTML = `<h2>${isSun ? "☀ " : ""}${esc(o[0])}</h2>
+  pane.innerHTML = `<div class="thead"><h2>${isSun ? "☀ " : ""}${esc(o[0])}</h2>${projButton(o)}</div>
     <p class="muted" style="margin:2px 0 0">${esc(solarSub(o))} · ${L("diamètre", "diameter")} ${sizeSolar(o)} · magnitude ${fmt(o[7], 1)}</p>
     ${isSun ? SUN_WARN() : ""}
     <div class="grid2" style="margin-top:12px">
@@ -1112,6 +1119,7 @@ function renderSolarTarget(o) {
         </div></article>`).join("") || `<p class="note">${L("Aucun instrument coché dans « Matériel et lieu ».", "No rig ticked in “Gear & site”.")}</p>`}</div>`;
   const im = $("#sdoImg");
   if (im) im.addEventListener("error", () => { im.replaceWith(Object.assign(document.createElement("p"), { className: "muted", textContent: L("Image de SDO indisponible pour l'instant.", "SDO image unavailable for now.") })); });
+  wireProjButton(o, renderTarget);
   wireCopy();
 }
 function wireCopy() {
@@ -1301,7 +1309,7 @@ function renderTarget() {
   if (!o) { pane.innerHTML = `<p class="note">${L("Cherchez une cible par son nom ou son numéro, ou choisissez-en une dans l'onglet « Ce soir ».", "Search for a target by name or number, or pick one in the “Tonight” tab.")}</p>`; return; }
   if (o.solar && o.solar.kind !== "comet") return renderSolarTarget(o);
   const nm = NM, vis = visibility(o, nm), rigs = o.solar ? bestRigsSolar(o, vis, nm) : bestRigs(o, vis, nm);
-  const head = `<h2>${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}</h2>
+  const head = `<div class="thead"><h2>${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}</h2>${projButton(o)}</div>
     <p class="muted" style="margin:2px 0 0">${o.solar ? esc(solarSub(o)) : esc(label(o)) + (objName(o) ? " · " + esc(TYPES[o[2]] || o[2]) : "") + " · " + size(o)}${o[7] != null ? " · magnitude " + fmt(o[7], 1) : ""}${o[10] ? L(" · coordonnées approchées", " · approximate coordinates") : ""}${o.solar ? L(` · se déplace de ${fmt(o.facts.rate, 1)}″/min`, ` · moves ${fmt(o.facts.rate, 1)}″/min`) : ""}</p>`;
   const visTxt = vis.usable > 0 ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : L(`jamais au-dessus de ${S.minAlt}° en nuit noire`, `never above ${S.minAlt}° in darkness`);
   const best = rigs[0];
@@ -1349,6 +1357,7 @@ function renderTarget() {
           ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
           ${i === 0 ? `<details style="margin-top:10px"><summary>${L("Fiche de soirée", "Session sheet")}</summary><pre class="sheet" id="sheetTxt">${esc(sheet(o, vis, nm, a))}</pre><button class="btn" type="button" id="copySheet">${L("Copier la fiche", "Copy the sheet")}</button> <span class="muted" id="copyMsg"></span></details>` : ""}
         </div></article>`).join("") || `<p class="note">${L("Aucun instrument coché dans « Matériel et lieu ».", "No rig ticked in “Gear & site”.")}</p>`}</div>`;
+  wireProjButton(o, renderTarget);
   drawPreview(o, rigs);
   $("#pvRig") && $("#pvRig").addEventListener("change", e => { pvState.rig = e.target.value; drawPreview(o, rigs); });
   $("#pvAngle").addEventListener("input", e => { pvState.angle = Number(e.target.value); $("#pvAngleV").textContent = pvState.angle; drawPreview(o, rigs, true); });
@@ -1928,6 +1937,116 @@ function renderJournal() {
         <td>${rest}</td><td class="num">${r.last ? new Date(r.last + "T12:00").toLocaleDateString(LOCALE) : "—"}</td>${ASTROBIN ? `<td>${r.o && astrobinFor(r.o).length ? `<span class="pill good">${astrobinFor(r.o).length} image${astrobinFor(r.o).length > 1 ? "s" : ""}</span>` : '<span class="muted">—</span>'}</td>` : ""}</tr>`; }).join("")}
   </tbody></table></div>`;
 }
+
+// ---------------------------------------------------------------- projets
+// projects.json : lu sur le serveur et réécrit par PUT (WebDAV de nginx) pour être partagé entre
+// l'ordinateur et le téléphone ; sinon gardé sur l'appareil.
+let PJ = { items: [], updated: 0 }, projServer = "unknown";   // unknown | ok | readonly
+const PSTATUS = { encours: () => L("En cours", "In progress"), envie: () => L("Envie", "Wishlist"), fini: () => L("Terminé", "Done") };
+function loadProjectsLocal() { try { const t = localStorage.getItem("astroplan-projects"); if (t) { const j = JSON.parse(t); if (j && Array.isArray(j.items)) PJ = j; } } catch (e) {} }
+async function loadProjectsServer() {
+  try { const r = await fetch("projects.json", { cache: "no-store" });
+    if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.items) && (j.updated || 0) > (PJ.updated || 0)) { PJ = j; try { localStorage.setItem("astroplan-projects", JSON.stringify(PJ)); } catch (e) {} } }
+  } catch (e) {}
+}
+async function saveProjects(render = false) {
+  PJ.updated = Date.now();
+  try { localStorage.setItem("astroplan-projects", JSON.stringify(PJ)); } catch (e) {}
+  try { const r = await fetch("projects.json", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(PJ) });
+    projServer = r.ok ? "ok" : "readonly"; } catch (e) { projServer = "readonly"; }
+  // pas de nouvel affichage pendant une saisie (note) : seulement quand l'ordre ou les lignes changent
+  if (render && currentView() === "journal") renderProjects();
+  const n = $("#projSaveNote"); if (n) n.innerHTML = projSaveText();
+}
+const projectOf = o => o ? PJ.items.find(p => p.id === oid(o)) : null;
+function toggleProject(o) {
+  const p = projectOf(o);
+  if (p) PJ.items = PJ.items.filter(x => x !== p);
+  else PJ.items.push({ id: oid(o), name: o[0], status: "encours", added: new Date().toISOString().slice(0, 10), goal: null, note: "" });
+  saveProjects();
+}
+function projButton(o) {
+  const p = projectOf(o);
+  return `<button class="btn ${p ? "primary" : ""}" type="button" id="projBtn" aria-pressed="${!!p}">${p ? L("★ Dans mes projets", "★ In my projects") : L("☆ Ajouter à mes projets", "☆ Add to my projects")}</button>`;
+}
+function wireProjButton(o, rerender) {
+  const b = $("#projBtn"); if (b) b.addEventListener("click", () => { toggleProject(o); rerender(); });
+}
+// qualité d'une nuit pour un objet (même règle que l'onglet « Meilleures nuits »)
+function nightQuality(o, nm, vis) {
+  const emi = EMISSION.has(o[2]), w = wxSpan(vis.wStart, vis.wEnd);
+  const moonHit = vis.usable > 0 ? (vis.moonUp / vis.usable) * nm.moonIllum : 0;
+  let q = o.solar && o.solar.kind !== "comet" ? vis.usable * (0.4 + 0.6 * Math.sin(Math.max(0, vis.best) * D2R)) : vis.usable * (1 - (emi ? 0.4 : 0.9) * moonHit);
+  if (w) q *= Math.max(0, 1 - w.cc / 100);
+  return q;
+}
+let projNightsCache = { key: "", list: [] };
+function projNights(n = 14) {   // les n prochaines soirées (et journées), calculées une fois
+  const start = dateValue(), key = [start, n, S.lat, S.lon, S.minAlt, JSON.stringify(S.horizon), WX ? WX.fetched : 0].join("|");
+  if (projNightsCache.key === key) return projNightsCache.list;
+  const [y, m, d] = start.split("-").map(Number), list = [];
+  for (let i = 0; i < n; i++) { const day = new Date(y, m - 1, d + i), ds = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+    list.push({ ds, night: nightModel(ds, 15), day: null }); }
+  projNightsCache = { key, list }; return list;
+}
+function projectRows() {
+  const nights = projNights();
+  return PJ.items.map(p => {
+    const o = findAny(p.id);
+    if (!o) return { p, o: null };
+    const isSun = o.solar && o.solar.kind === "sun";
+    const j = journalFor(o);
+    let advised = null;
+    if (!o.solar || o.solar.kind === "comet") { const vis = visibility(o, NM), rigs = o.solar ? bestRigsSolar(o, vis, NM) : bestRigs(o, vis, NM); advised = rigs[0] ? rigs[0].hours : null; }
+    const goal = p.goal || advised;
+    const tonight = visibility(o, isSun ? dayModel() : NM);
+    let best = null;
+    for (const nt of nights) {
+      let m = nt.night; if (isSun) { nt.day = nt.day || nightModel(nt.ds, 15, 0); m = nt.day; }
+      const v = visibility(o, m), q = nightQuality(o, m, v);
+      if (!best || q > best.q) best = { q, t: m.t0, ds: nt.ds, v };
+    }
+    return { p, o, j, goal, tonight, best };
+  });
+}
+function renderProjects() {
+  const box = $("#projectsPane");
+  if (!PJ.items.length) { box.innerHTML = `<p class="note">${L("Aucun projet pour l'instant : sur la fiche d'une cible, touchez « ☆ Ajouter à mes projets ».", "No project yet: on a target page, tap “☆ Add to my projects”.")}</p>`; return; }
+  const order = { encours: 0, envie: 1, fini: 2 };
+  const rows = projectRows().sort((a, b) => (order[a.p.status] ?? 3) - (order[b.p.status] ?? 3) || ((b.best ? b.best.q : 0) - (a.best ? a.best.q : 0)));
+  box.innerHTML = `<div class="tablewrap"><table><thead><tr><th>${L("Cible", "Target")}</th><th>${L("Statut", "Status")}</th><th>${L("Avancement", "Progress")}</th><th class="num">${L("Ce soir", "Tonight")}</th><th>${L("Meilleure nuit (14 j)", "Best night (14 d)")}</th><th>${L("Note", "Note")}</th><th></th></tr></thead><tbody>
+    ${rows.map(({ p, o, j, goal, tonight, best }) => {
+      if (!o) return `<tr><td><div class="obj">${esc(p.name || p.id)}<small>${L("introuvable ce soir (comète trop faible ?)", "not found tonight (comet too faint?)")}</small></div></td><td colspan="5"></td><td><button class="btn" type="button" data-del="${esc(p.id)}" aria-label="${L("Retirer", "Remove")}">✕</button></td></tr>`;
+      const secs = j ? j.secs : 0, pct = goal ? Math.min(1, secs / 3600 / goal) : 0;
+      return `<tr data-pid="${esc(p.id)}">
+        <td><a href="#cible" data-open="${esc(p.id)}" class="obj" style="text-decoration:none;color:inherit;display:block">${esc(o[0])}<small>${esc(o.solar ? solarSub(o) : label(o))}</small></a></td>
+        <td><select data-status="${esc(p.id)}" aria-label="${L("Statut", "Status")}">${Object.keys(PSTATUS).map(k => `<option value="${k}" ${p.status === k ? "selected" : ""}>${PSTATUS[k]()}</option>`).join("")}</select></td>
+        <td><div class="progress">${goal ? `<div class="bar"><i style="width:${Math.round(pct * 100)}%"></i></div>` : ""}<span class="muted" style="font-size:12px">${hm(secs / 3600)}${goal ? ` / <input class="goal" type="number" min="0.5" max="100" step="0.5" value="${fmt(goal, 1).replace(",", ".")}" data-goal="${esc(p.id)}" aria-label="${L("Objectif en heures", "Goal in hours")}"> h` : ""}${j ? ` · ${j.nights} ${L("nuit", "night")}${j.nights > 1 ? "s" : ""}` : ""}</span></div></td>
+        <td class="num">${tonight.usable ? `${hhmm(tonight.wStart)} – ${hhmm(tonight.wEnd)}<br><span class="muted">${hm(tonight.usable)}</span>` : "—"}</td>
+        <td>${best && best.q > 0.1 ? `${best.ds === dateValue() ? `<strong>${L("ce soir", "tonight")}</strong>` : dayFr(best.t)}<br><span class="muted">${hm(best.v.usable)}${best.v.moonUp > 0.5 && NM && !o.solar ? L(" · Lune", " · Moon") : ""}</span>` : `<span class="muted">${L("pas dans les 14 jours", "not within 14 days")}</span>`}</td>
+        <td><input type="text" class="pnote" value="${esc(p.note || "")}" data-note="${esc(p.id)}" placeholder="${L("cadrage, filtre…", "framing, filter…")}" aria-label="${L("Note", "Note")}"></td>
+        <td><button class="btn" type="button" data-del="${esc(p.id)}" aria-label="${L("Retirer", "Remove")}">✕</button></td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="note" id="projSaveNote">${projSaveText()}</p>`;
+}
+function projSaveText() {
+  return `${projServer === "readonly" ? L("Projets enregistrés sur cet appareil seulement : le serveur n'accepte pas encore l'écriture de projects.json (voir le README pour le partager entre l'ordinateur et le téléphone).", "Projects saved on this device only: the server does not accept writing projects.json yet (see the README to share them between computer and phone).")
+      : projServer === "ok" ? L("Projets enregistrés sur le serveur : les mêmes sur l'ordinateur et le téléphone.", "Projects saved on the server: the same on computer and phone.")
+      : ""} ${L("Meilleure nuit : celle des 14 prochaines où la cible est la mieux placée, selon la Lune et les nuages prévus.", "Best night: the one of the next 14 where the target is best placed, given the Moon and forecast cloud.")}`;
+}
+(function projectEvents() {
+  const box = $("#projectsPane");
+  box.addEventListener("click", e => {
+    const a = e.target.closest("[data-open]"); if (a) { e.preventDefault(); openTarget(a.dataset.open); return; }
+    const d = e.target.closest("[data-del]"); if (d) { PJ.items = PJ.items.filter(p => p.id !== d.dataset.del); renderProjects(); saveProjects(); }
+  });
+  box.addEventListener("change", e => {
+    const t = e.target, find = id => PJ.items.find(p => p.id === id);
+    if (t.dataset.status) { const p = find(t.dataset.status); if (p) { p.status = t.value; saveProjects(true); } }
+    if (t.dataset.note != null) { const p = find(t.dataset.note); if (p) { p.note = t.value.slice(0, 300); saveProjects(); } }
+    if (t.dataset.goal) { const p = find(t.dataset.goal), v = parseFloat(t.value); if (p && v > 0) { p.goal = Math.min(100, v); saveProjects(true); } }
+  });
+})();
 async function importJournalFile(file) {
   try { const j = JSON.parse(await file.text()); const n = mergeJournal(journalEntries(j));
     renderJournal(); flashNote(L(`${n} séance(s) ajoutée(s) au journal`, `${n} session(s) added to the log`)); }
@@ -1976,7 +2095,7 @@ function show() {
   if (v === "cible") renderTarget();
   if (v === "nuits") renderNights();
   if (v === "carte") renderMap();
-  if (v === "journal") renderJournal();
+  if (v === "journal") { renderProjects(); renderJournal(); }
   if (v === "alertes") renderAlerts();
   if (v === "materiel") renderGear();
 }
@@ -2054,7 +2173,7 @@ const STATIC_EN = [
   ['label[for="date"]', "Evening of"], ['label[for="minAlt"]', "Min. altitude"],
   ["#redBtn", "Red mode"], ["#redBtn", "Red palette to keep your night vision", "title"],
   ['nav.tabs a[data-view="ce-soir"]', "Tonight"], ['nav.tabs a[data-view="carte"]', "Sky map"], ['nav.tabs a[data-view="cible"]', "Target"],
-  ['nav.tabs a[data-view="nuits"]', "Best nights"], ["#alertsTabLabel", "Alerts"], ["#alertsTitle", "Alerts and events"], ["#icsBtn", "Add to my calendar"], ["#icsBtn", "Calendar file with reminders, for your phone or computer", "title"], ['nav.tabs a[data-view="journal"]', "Log"], ['nav.tabs a[data-view="materiel"]', "Gear & site"],
+  ['nav.tabs a[data-view="nuits"]', "Best nights"], ["#alertsTabLabel", "Alerts"], ["#alertsTitle", "Alerts and events"], ["#icsBtn", "Add to my calendar"], ["#icsBtn", "Calendar file with reminders, for your phone or computer", "title"], ['nav.tabs a[data-view="journal"]', "Projects"], ["#projTitle", "My projects"], ['nav.tabs a[data-view="materiel"]', "Gear & site"],
   ["nav.tabs", "Views", "aria-label"],
   ["#v-ce-soir h2:not(#solarTitle)", "Tonight's best deep-sky targets"], ["#solarTitle", "Solar system"],
   ["#solarHead", "<th>Object</th><th class=\"num\">Mag.</th><th class=\"num\">Diameter</th><th class=\"num\">Usable window</th><th class=\"num\">Highest</th><th>Best rig</th>", "html"], ["#typeChips", "Object type", "aria-label"], ["#rigChips", "Rig", "aria-label"],
@@ -2064,9 +2183,9 @@ const STATIC_EN = [
   [".legendmap", '<span><b style="color:var(--accent)">●</b> well-placed target (above the minimum altitude, full darkness)</span><span><b style="color:var(--muted)">●</b> visible but low or behind an obstacle</span><span>◯ galaxy · □ nebula · ✛ cluster · ● planet · ☄ comet (tail pointing away from the Sun)</span><span>View looking up: north up, east left, zenith in the centre</span>', "html"],
   ["#q", "M 31, NGC 7000, Heart, Sh2-129…", "placeholder"], ["#q", "Search for a target", "aria-label"],
   ['label[for="nightsSpan"]', "Period"], ['#nightsSpan', '<option value="14">14 nights</option><option value="30">30 nights</option><option value="60">60 nights</option>', "html"],
-  ["#v-journal h2", "Target log"], ['label[for="journalFile"]', "Import an AstroCheck log…"],
+  ["#journalTitle", "Target log"], ['label[for="journalFile"]', "Import an AstroCheck log…"],
   ["#journalDrop", 'Drop the <span class="mono">journal.json</span> file written by AstroCheck here', "html"],
-  ["#v-journal p.note", 'AstroCheck writes this log at every export (and with Analysis ▸ Update the AstroPlan log) to <span class="mono">~/.config/astrocheck/journal.json</span>. On your server, copy it next to the page so it shows everywhere:<br><span class="mono">scp ~/.config/astrocheck/journal.json server:/var/www/astroplan/site/journal.json</span>', "html"],
+  ["#v-journal p.note", 'AstroCheck writes this log at every export (and with Analysis ▸ Update the AstroPlan log) to <span class="mono">~/.config/astrocheck/journal.json</span>. To show it everywhere, AstroCheck can send it to the server itself after every update: Analysis ▸ Automatic log upload to the server.', "html"],
   ["#v-materiel h2:nth-of-type(1)", "Site and sky"], ['label[for="lat"]', "Latitude (north +)"], ['label[for="lon"]', "Longitude (east +)"], ['label[for="siteName"]', "Site name"],
   ['label[for="bortle"]', "Sky (Bortle scale)"], ['label[for="seeing"]', "Typical seeing (FWHM)"],
   ["#seeing", '<option value="2">2″ (very good)</option><option value="2.5">2.5″</option><option value="3">3″ (average)</option><option value="4">4″ (poor)</option>', "html"],
@@ -2097,6 +2216,7 @@ applyStaticLang();
 loadLocal();
 if (!Array.isArray(S.horizon) || S.horizon.length !== 16) S.horizon = new Array(16).fill(0);
 loadJournalLocal();
+loadProjectsLocal();
 try { if (localStorage.getItem("astroplan-red")) { document.body.classList.add("red"); $("#redBtn").setAttribute("aria-pressed", "true"); } } catch (e) {}
 let savedTarget = null;
 try { savedTarget = sessionStorage.getItem("astroplan-target"); } catch (e) {}
@@ -2105,7 +2225,7 @@ if (!current && !(savedTarget && (savedTarget in { sun: 1, moon: 1, mercury: 1, 
 if (!current) current = { pending: savedTarget };
 refreshAll();
 // météo et journal du serveur, puis nouvel affichage
-Promise.all([loadWeather(), loadJournalServer(), loadAstrobin(), loadSpace()]).then(() => { resolveSolar(); renderNightbar(); show();
+Promise.all([loadWeather(), loadJournalServer(), loadAstrobin(), loadSpace(), loadProjectsServer()]).then(() => { resolveSolar(); renderNightbar(); show();
   // alertes calculées en tâche de fond pour la pastille de l'onglet
   const idle = window.requestIdleCallback || (f => setTimeout(f, 3000));
   idle(() => ensureAlerts(() => {}), { timeout: 8000 }); });
