@@ -56,24 +56,17 @@ Ouvrez l'adresse du site dans Chrome, puis **Installer l'application** (bouton d
 
 ## Vos images AstroBin
 
-AstroPlan peut afficher, sur la fiche de chaque cible, vos images publiées sur [AstroBin](https://www.astrobin.com), retrouvées grâce aux objets que la résolution astrométrique d'AstroBin a reconnus (ou au titre). La clé d'API reste sur le serveur : un petit script interroge AstroBin et écrit `site/astrobin.json`, que la page lit.
+AstroPlan peut afficher, sur la fiche de chaque cible, vos images publiques d'[AstroBin](https://www.astrobin.com), retrouvées grâce aux objets que la résolution astrométrique d'AstroBin a reconnus (ou au titre). Un petit script, sur le serveur, lit votre galerie par l'interface publique d'AstroBin (aucune clé d'API nécessaire) et écrit `site/astrobin.json`, que la page lit.
 
-1. Demandez une clé d'API sur https://www.astrobin.com/api/request-key/ (clé et secret).
-2. Sur le serveur, créez `/etc/astroplan/astrobin.conf`, lisible par root seulement :
-   ```ini
-   [astrobin]
-   username = votre_nom_astrobin
-   api_key = ...
-   api_secret = ...
-   ```
-   ```bash
-   sudo chmod 600 /etc/astroplan/astrobin.conf
-   ```
-3. Testez, puis programmez une mise à jour chaque heure :
-   ```bash
-   sudo python3 /var/www/astroplan/tools/astrobin_sync.py
-   echo "17 * * * * root python3 /var/www/astroplan/tools/astrobin_sync.py >/dev/null 2>&1" | sudo tee /etc/cron.d/astroplan-astrobin
-   ```
+```bash
+sudo python3 /var/www/astroplan/tools/astrobin_sync.py VOTRE_NOM_ASTROBIN --debug
+```
+
+Puis, pour une mise à jour chaque heure :
+
+```bash
+echo "17 * * * * root python3 /var/www/astroplan/tools/astrobin_sync.py VOTRE_NOM_ASTROBIN >/dev/null 2>&1" | sudo tee /etc/cron.d/astroplan-astrobin
+```
 
 ## Modifier le matériel ou le catalogue
 
