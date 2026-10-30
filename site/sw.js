@@ -1,6 +1,6 @@
 // AstroPlan : fonctionnement hors ligne.
 // La page vient du réseau quand il répond (mises à jour immédiates), sinon du cache.
-const CACHE = "astroplan-d57d841fd6";
+const CACHE = "astroplan-ee65438797";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png",
   "icons/maskable-192.png", "icons/maskable-512.png", "icons/apple-touch-icon.png"];
 
@@ -42,12 +42,12 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   if (url.origin === location.origin) {
     if (url.pathname.endsWith("/sw.js")) return;
-    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json")) {
+    if (req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname.endsWith("journal.json") || url.pathname.endsWith("astrobin.json")) {
       e.respondWith(networkFirst(req, true)); return;
     }
     e.respondWith(cacheFirst(req)); return;
   }
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") { e.respondWith(cacheFirst(req)); return; }
   if (url.hostname === "api.open-meteo.com") { e.respondWith(networkFirst(req, true)); return; }
-  // images du ciel (CDS) : laissées au navigateur
+  // images du ciel et vignettes AstroBin : laissées au navigateur
 });
