@@ -94,6 +94,18 @@ td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-num
 
 .grid2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px }
 @media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr) } }
+.danger { margin-top: 12px; border: 2px solid var(--bad); border-radius: 8px; padding: 10px 14px; background: color-mix(in srgb, var(--bad) 10%, var(--panel)) }
+.danger strong { color: var(--bad); display: block; font-size: 16px }
+.sdo { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 8px }
+.sdo img { width: 100%; height: auto; border-radius: 50%; background: #000 }
+@media (max-width: 640px) { .sdo { grid-template-columns: minmax(0, 1fr) } }
+.alert-card { margin-top: 16px }
+.alert-card h4 { font-family: var(--f-display); font-size: 16px; margin: 10px 0 0 }
+ul.hl { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 8px }
+ul.hl li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px }
+ul.hl li.strong { border-left-color: var(--accent) }
+.tabbadge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--bg); font: 600 12px/18px var(--f-body); text-align: center; vertical-align: 2px }
+.tabbadge[hidden] { display: none }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0 }
 .card + .card { margin-top: 0 }
 .stack { display: grid; gap: 16px }
@@ -176,6 +188,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
     <a href="#carte" data-view="carte">Carte du ciel</a>
     <a href="#cible" data-view="cible">Cible</a>
     <a href="#nuits" data-view="nuits">Meilleures nuits</a>
+    <a href="#alertes" data-view="alertes"><span id="alertsTabLabel">Alertes</span> <span class="tabbadge" id="alertBadge" hidden></span></a>
     <a href="#journal" data-view="journal">Journal</a>
     <a href="#materiel" data-view="materiel">Matériel et lieu</a>
   </nav>
@@ -184,13 +197,19 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
 
   <!-- CE SOIR -->
   <section class="view" id="v-ce-soir">
-    <div class="toolbar">
-      <h2 style="margin-right:auto">Les meilleures cibles de la soirée</h2>
+    <div class="toolbar"><h2 style="margin-right:auto" id="solarTitle">Système solaire</h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr id="solarHead"><th>Objet</th><th class="num">Mag.</th><th class="num">Diamètre</th><th class="num">Fenêtre utile</th><th class="num">Au plus haut</th><th>Meilleur instrument</th></tr></thead>
+      <tbody id="solarBody"></tbody>
+    </table></div>
+    <p class="note" id="solarNote"></p>
+    <div class="toolbar" style="margin-top:18px">
+      <h2 style="margin-right:auto">Le ciel profond : meilleures cibles de la soirée</h2>
       <div class="chips" id="typeChips" role="group" aria-label="Type d'objet"></div>
     </div>
     <div class="toolbar"><div class="chips" id="rigChips" role="group" aria-label="Instrument"></div></div>
     <div class="tablewrap"><table>
-      <thead><tr><th>Objet</th><th>Type</th><th class="num">Taille</th><th>Fenêtre utile</th><th class="num">Durée</th><th class="num">Culmine</th><th>Lune</th><th>Nuages</th><th>Journal</th><th>Meilleur instrument</th></tr></thead>
+      <thead><tr id="tonightHead"><th>Objet</th><th>Type</th><th class="num">Taille</th><th>Fenêtre utile</th><th class="num">Durée</th><th class="num">Culmine</th><th>Lune</th><th>Nuages</th><th>Journal</th><th>Meilleur instrument</th></tr></thead>
       <tbody id="tonightBody"></tbody>
     </table></div>
     <p class="note" id="tonightNote"></p>
@@ -215,7 +234,7 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
     <div class="legendmap">
       <span><b style="color:var(--accent)">●</b> cible bien placée (au-dessus de la hauteur mini, nuit noire)</span>
       <span><b style="color:var(--muted)">●</b> cible visible mais basse ou derrière un obstacle</span>
-      <span>◯ galaxie · □ nébuleuse · ✛ amas</span>
+      <span>◯ galaxie · □ nébuleuse · ✛ amas · ● planète · ☄ comète (queue à l'opposé du Soleil)</span>
       <span>Vue en levant la tête : nord en haut, est à gauche, zénith au centre</span>
     </div>
   </section>
@@ -233,6 +252,13 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
     <div class="toolbar"><h2 style="margin-right:auto" id="nightsTitle">Meilleures nuits</h2>
       <div class="field"><label for="nightsSpan">Période</label><select id="nightsSpan"><option value="14">14 nuits</option><option value="30" selected>30 nuits</option><option value="60">60 nuits</option></select></div></div>
     <div id="nightsPane"></div>
+  </section>
+
+  <!-- ALERTES -->
+  <section class="view" id="v-alertes" hidden>
+    <div class="toolbar"><h2 style="margin-right:auto" id="alertsTitle">Alertes et événements</h2>
+      <button class="btn" type="button" id="icsBtn" title="Fichier calendrier avec rappels, pour le téléphone ou l'ordinateur">Ajouter à mon agenda</button></div>
+    <div id="alertsPane"></div>
   </section>
 
   <!-- JOURNAL -->
@@ -267,11 +293,12 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
   </section>
 
   <footer>
-    Positions calculées pour la date (précession), Lune et Soleil à quelques minutes d'arc près. Les poses et temps totaux sont des ordres de grandeur pour votre ciel, à affiner avec l'expérience. Catalogue NGC/IC et Messier : <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> de Mattia Verga (CC BY-SA 4.0) ; nébuleuses Sharpless : coordonnées approchées. Étoiles et constellations : <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a> d'Olaf Frohn (BSD).
+    Positions calculées pour la date (précession), Soleil, Lune et planètes à la minute d'arc près. Les poses et temps totaux sont des ordres de grandeur pour votre ciel, à affiner avec l'expérience. Catalogue NGC/IC et Messier : <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> de Mattia Verga (CC BY-SA 4.0) ; nébuleuses Sharpless : coordonnées approchées. Étoiles et constellations : <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a> d'Olaf Frohn (BSD). Soleil, Lune, planètes et éclipses : <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener">Astronomy Engine</a> de Don Cross (MIT) ; ISS et Tiangong : <a href="https://github.com/shashwatak/satellite-js" target="_blank" rel="noopener">satellite.js</a> (MIT) et orbites de <a href="https://celestrak.org" target="_blank" rel="noopener">CelesTrak</a> ; comètes : <a href="https://minorplanetcenter.net" target="_blank" rel="noopener">Minor Planet Center</a> ; taches et indice Kp : NOAA SWPC ou SILSO ; image du Soleil : NASA SDO.
     Météo : prévisions <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) quand la page peut les joindre ; sinon <a id="wxLink" href="https://clearoutside.com/forecast/43.46/5.02" target="_blank" rel="noopener">Clear Outside pour votre lieu</a>.
   </footer>
 </div>
 
+<!--VENDOR-->
 <script>
 "use strict";
 // ---------------------------------------------------------------- langue
@@ -331,11 +358,13 @@ const TYPES = EN ? {
   PN: "planetary nebula", HII: "HII region", EmN: "emission nebula", RfN: "reflection nebula",
   SNR: "supernova remnant", "Cl+N": "cluster with nebula", OCl: "open cluster", GCl: "globular cluster",
   Neb: "nebula", "*Ass": "stellar association", "**": "double star", Other: "other", DrkN: "dark nebula",
+  Sun: "star", Moon: "Moon", Pla: "planet", Com: "comet",
 } : {
   G: "galaxie", GPair: "paire de galaxies", GTrpl: "trio de galaxies", GGroup: "groupe de galaxies",
   PN: "nébuleuse planétaire", HII: "région HII", EmN: "nébuleuse en émission", RfN: "nébuleuse par réflexion",
   SNR: "rémanent de supernova", "Cl+N": "amas et nébuleuse", OCl: "amas ouvert", GCl: "amas globulaire",
   Neb: "nébuleuse", "*Ass": "association d'étoiles", "**": "étoile double", Other: "autre", DrkN: "nébuleuse obscure",
+  Sun: "étoile", Moon: "Lune", Pla: "planète", Com: "comète",
 };
 const EMISSION = new Set(["HII", "EmN", "SNR", "Cl+N", "PN", "Neb"]);
 const FAMILY = t => t.startsWith("G") && t !== "GCl" ? "gal" : (t === "OCl" || t === "GCl" || t === "*Ass" || t === "**") ? "amas" : "neb";
@@ -438,9 +467,9 @@ const minAltAt = az => Math.max(S.minAlt, obstacleAt(az));
 
 // ---------------------------------------------------------------- la nuit
 const STEP_MIN = 5;
-function eveningStart(dateStr) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(y, m - 1, d, 12, 0, 0).getTime(); }
-function nightModel(dateStr, step = STEP_MIN) {
-  const t0 = eveningStart(dateStr), n = Math.round(24 * 60 / step);
+function eveningStart(dateStr, hour = 12) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(y, m - 1, d, hour, 0, 0).getTime(); }
+function nightModel(dateStr, step = STEP_MIN, startHour = 12) {
+  const t0 = eveningStart(dateStr, startHour), n = Math.round(24 * 60 / step);
   const times = [], sunAlt = [], moons = [];
   for (let k = 0; k <= n; k++) {
     const t = t0 + k * step * 60000, jd = jdOf(t), sn = sunPos(jd);
@@ -460,24 +489,150 @@ function nightModel(dateStr, step = STEP_MIN) {
   m.darkHours = (m.darkStart && m.darkEnd) ? (m.darkEnd - m.darkStart) / 3.6e6 : 0;
   return m;
 }
-function targetCoords(o, jd) { return precess(o[3] * 15, o[4], jd); }
+function targetCoords(o, jd) { return o.solar ? solarRaDec(o, jd) : precess(o[3] * 15, o[4], jd); }
 function visibility(o, nm) {
+  // les objets du système solaire bougent : position recalculée à chaque pas (résultat gardé avec la nuit)
+  if (o.solar) { nm.visCache = nm.visCache || new Map(); const k = o.solar.key + "|" + S.minAlt; if (nm.visCache.has(k)) return nm.visCache.get(k);
+    const v = visibilityCalc(o, nm); nm.visCache.set(k, v); return v; }
+  return visibilityCalc(o, nm);
+}
+function visibilityCalc(o, nm) {
   const [ra, dec] = targetCoords(o, jdOf(nm.t0 + 12 * 3.6e6));
+  const moving = !!o.solar, lim = darkLimit(o), selfMoon = moving && (o.solar.kind === "moon" || o.solar.kind === "sun");
   const alts = [], azs = []; let best = -90, bestT = null, usable = 0, wStart = null, wEnd = null, moonSepMin = 180, moonUp = 0, skySum = 0, nSky = 0;
   for (let k = 0; k < nm.times.length; k++) {
-    const t = nm.times[k], h = altaz(ra, dec, jdOf(t)); alts.push(h.alt); azs.push(h.az);
-    const dark = nm.sunAlt[k] <= -18;
+    const t = nm.times[k], [r, d] = moving ? targetCoords(o, jdOf(t)) : [ra, dec], h = altaz(r, d, jdOf(t)); alts.push(h.alt); azs.push(h.az);
+    const dark = nm.sunAlt[k] <= lim;
     if (dark && h.alt > best) { best = h.alt; bestT = t; }
     if (dark && h.alt >= minAltAt(h.az)) {
       usable += nm.step / 60; if (wStart === null) wStart = t; wEnd = t;
-      const mo = nm.moons[k], sp = sep(ra, dec, mo.ra, mo.dec);
-      if (mo.alt > 0) { moonUp += nm.step / 60; moonSepMin = Math.min(moonSepMin, sp); }
-      skySum += skyMag(mo, sp); nSky++;
+      const mo = nm.moons[k], sp = sep(r, d, mo.ra, mo.dec);
+      if (mo.alt > 0 && !selfMoon) { moonUp += nm.step / 60; moonSepMin = Math.min(moonSepMin, sp); }
+      skySum += selfMoon ? SQM[S.bortle] : skyMag(mo, sp); nSky++;
     }
   }
   return { ra, dec, alts, azs, best, bestT, usable, wStart, wEnd, moonUp, moonSepMin,
     sky: nSky ? skySum / nSky : SQM[S.bortle] };
 }
+
+// ---------------------------------------------------------------- système solaire
+// Soleil, Lune et planètes : Astronomy Engine de Don Cross (MIT), à la minute d'arc près.
+// Comètes : éléments orbitaux du Minor Planet Center (space.json du serveur), orbite képlérienne.
+const AE = window.Astronomy;
+const AU_KM = 149597870.7;
+const OBL_J2000 = 23.4392911 * D2R;
+let SPACE = null;   // space.json : orbites de comètes, TLE de l'ISS et de Tiangong, taches solaires, indice Kp
+let aeObsCache = null;
+function aeObs() {
+  if (!aeObsCache || aeObsCache.latitude !== Number(S.lat) || aeObsCache.longitude !== Number(S.lon)) aeObsCache = new AE.Observer(Number(S.lat), Number(S.lon), 0);
+  return aeObsCache;
+}
+const jdDate = jd => new Date((jd - 2440587.5) * 86400000);
+// clé, corps, nom français, nom anglais, type, rayon équatorial (km), période de rotation (s)
+const SOLAR_DEF = [
+  ["sun", "Sun", "Soleil", "Sun", "Sun", 695700, 0],
+  ["moon", "Moon", "Lune", "Moon", "Moon", 1737.4, 0],
+  ["mercury", "Mercury", "Mercure", "Mercury", "Pla", 2440.5, 0],
+  ["venus", "Venus", "Vénus", "Venus", "Pla", 6051.8, 0],
+  ["mars", "Mars", "Mars", "Mars", "Pla", 3396.2, 88643],
+  ["jupiter", "Jupiter", "Jupiter", "Jupiter", "Pla", 71492, 35730],
+  ["saturn", "Saturn", "Saturne", "Saturn", "Pla", 60268, 38362],
+  ["uranus", "Uranus", "Uranus", "Uranus", "Pla", 25559, 0],
+  ["neptune", "Neptune", "Neptune", "Neptune", "Pla", 24764, 0],
+];
+// comètes
+function keplerE(M, e) { let E = M + e * Math.sin(M); for (let k = 0; k < 40; k++) { const d = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E)); E -= d; if (Math.abs(d) < 1e-12) break; } return E; }
+const KGAUSS = 0.01720209895;
+function cometHelio(c, jd) {   // position héliocentrique, équateur J2000 (UA)
+  const dt = jd - c.T, q = c.q, e = c.e;
+  let xp, yp;
+  if (Math.abs(e - 1) < 1e-6) {                 // parabole (équation de Barker)
+    const W = 3 * KGAUSS / Math.sqrt(2 * q * q * q) * dt, Y = Math.cbrt(W / 2 + Math.sqrt(W * W / 4 + 1)), s = Y - 1 / Y;
+    const nu = 2 * Math.atan(s), r = q * (1 + s * s); xp = r * Math.cos(nu); yp = r * Math.sin(nu);
+  } else if (e < 1) {                            // ellipse
+    const a = q / (1 - e), M = KGAUSS / Math.pow(a, 1.5) * dt;
+    const E = keplerE(((M % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI, e);
+    xp = a * (Math.cos(E) - e); yp = a * Math.sqrt(1 - e * e) * Math.sin(E);
+  } else {                                       // hyperbole
+    const a = q / (e - 1), M = KGAUSS / Math.pow(a, 1.5) * dt;
+    let H = Math.asinh(M / e);
+    for (let k = 0; k < 60; k++) { const d = (e * Math.sinh(H) - H - M) / (e * Math.cosh(H) - 1); H -= d; if (Math.abs(d) < 1e-12) break; }
+    xp = a * (e - Math.cosh(H)); yp = a * Math.sqrt(e * e - 1) * Math.sinh(H);
+  }
+  const w = c.w * D2R, O = c.node * D2R, I = c.i * D2R;
+  const cw = Math.cos(w), sw = Math.sin(w), cO = Math.cos(O), sO = Math.sin(O), cI = Math.cos(I), sI = Math.sin(I);
+  const x = (cw * cO - sw * sO * cI) * xp + (-sw * cO - cw * sO * cI) * yp,
+        y = (cw * sO + sw * cO * cI) * xp + (-sw * sO + cw * cO * cI) * yp,
+        z = (sw * sI) * xp + (cw * sI) * yp;
+  return [x, y * Math.cos(OBL_J2000) - z * Math.sin(OBL_J2000), y * Math.sin(OBL_J2000) + z * Math.cos(OBL_J2000)];
+}
+function cometGeo(c, jd) {   // RA/DEC J2000 (°), distance à la Terre et au Soleil (UA)
+  const E = AE.HelioVector(AE.Body.Earth, jdDate(jd));
+  let h = cometHelio(c, jd), g = [h[0] - E.x, h[1] - E.y, h[2] - E.z];
+  h = cometHelio(c, jd - Math.hypot(...g) * 0.0057755183); g = [h[0] - E.x, h[1] - E.y, h[2] - E.z];
+  const d = Math.hypot(...g);
+  return { ra: norm360(Math.atan2(g[1], g[0]) * R2D), dec: Math.asin(g[2] / d) * R2D, dist: d, r: Math.hypot(...h) };
+}
+// position de la date (°) d'un objet du système solaire, topocentrique (compte pour la Lune)
+function solarRaDec(o, jd) {
+  const s = o.solar;
+  if (s.comet) { const g = cometGeo(s.comet, jd); return precess(g.ra, g.dec, jd); }
+  const q = AE.Equator(s.body, jdDate(jd), aeObs(), true, true);
+  return [q.ra * 15, q.dec];
+}
+// éclat, taille, phase et élongation à un instant
+function solarFacts(o, jd) {
+  const s = o.solar, date = jdDate(jd);
+  if (s.comet) {
+    const c = s.comet, g = cometGeo(c, jd), g2 = cometGeo(c, jd + 1 / 24), sn = AE.Equator(AE.Body.Sun, date, aeObs(), false, true);
+    return { ra: g.ra, dec: g.dec, dist: g.dist, r: g.r, mag: c.H + 5 * Math.log10(g.dist) + 2.5 * c.G * Math.log10(g.r),
+      rate: sep(g.ra, g.dec, g2.ra, g2.dec) * 60, diam: null, elong: sep(g.ra, g.dec, sn.ra * 15, sn.dec) };
+  }
+  const q = AE.Equator(s.body, date, aeObs(), false, true), f = { ra: q.ra * 15, dec: q.dec, dist: q.dist };
+  f.diam = 2 * Math.atan(s.radius / (q.dist * AU_KM)) * R2D * 3600;   // ″
+  if (s.key === "sun") { f.mag = -26.7; f.elong = 0; return f; }
+  const il = AE.Illumination(s.body, date);
+  f.mag = il.mag; f.illum = il.phase_fraction; f.phase = il.phase_angle; f.elong = AE.AngleFromSun(s.body, date);
+  if (s.key === "saturn" && il.ring_tilt != null) f.rings = il.ring_tilt;
+  return f;
+}
+let SOLAR = [], solarKey = "";
+const PLANET_COL = { mercury: "#c9b8a6", venus: "#fff4d6", mars: "#ff8a5c", jupiter: "#f5d7a8", saturn: "#e8d08a", uranus: "#a8e6f0", neptune: "#7fa8ff" };
+function solarRaDecSafe(o, jd) { try { return o ? solarRaDec(o, jd) : [0, -90]; } catch (e) { return [0, -90]; } }
+const oid = o => o.solar ? o.solar.key : o[0];
+function makeSolar(nm) {
+  const key = [nm.t0, S.lat, S.lon, SPACE ? SPACE.updated : ""].join("|");
+  if (key === solarKey) return SOLAR;
+  const jd = jdOf(nm.t0 + 12 * 3.6e6), list = [];
+  for (const [k, body, fr, en, type, radius, rot] of SOLAR_DEF) {
+    const o = [EN ? en : fr, "", type, 0, 0, 0, 0, null, null, fr, 0, en];
+    o.solar = { key: k, body, radius, rot, kind: k === "sun" ? "sun" : k === "moon" ? "moon" : "planet" };
+    list.push(o);
+  }
+  for (const c of (SPACE && Array.isArray(SPACE.comets) ? SPACE.comets : [])) {
+    const name = c.name || c.desig; if (!name || !(c.q > 0)) continue;
+    const o = [name, "", "Com", 0, 0, null, null, null, null, L("comète", "comet"), 0, L("comète", "comet")];
+    o.solar = { key: "com:" + name, comet: c, kind: "comet" };
+    list.push(o);
+  }
+  SOLAR = [];
+  for (const o of list) {
+    let f; try { f = solarFacts(o, jd); } catch (e) { continue; }
+    if (o.solar.kind === "comet" && !(f.mag < 13)) continue;   // comètes trop faibles pour vos instruments
+    o.facts = f; o[3] = f.ra / 15; o[4] = f.dec; o[7] = f.mag;
+    if (f.diam) o[5] = o[6] = f.diam / 60;
+    SOLAR.push(o);
+  }
+  solarKey = key;
+  return SOLAR;
+}
+function findAny(id) { return CATALOG.find(o => o[0] === id) || SOLAR.find(o => o.solar.key === id || o[0] === id) || null; }
+// la journée (pour le Soleil) : de minuit à minuit
+let DAY = null;
+function dayModel() { const ds = dateValue(); if (!DAY || DAY.ds !== ds || DAY.lat !== S.lat || DAY.lon !== S.lon) { DAY = nightModel(ds, STEP_MIN, 0); DAY.ds = ds; DAY.lat = S.lat; DAY.lon = S.lon; } return DAY; }
+// hauteur du Soleil sous laquelle l'objet s'observe : nuit noire pour le ciel profond, crépuscule pour les planètes et la Lune
+function darkLimit(o) { if (!o.solar) return -18; const k = o.solar.kind; return k === "sun" ? 91 : k === "comet" ? -12 : -6; }
+const sizeSolar = o => { const d = o.facts && o.facts.diam; return d == null ? "—" : d >= 120 ? `${fmt(d / 60, 1)}′` : `${fmt(d, d < 10 ? 1 : 0)}″`; };
 
 // ---------------------------------------------------------------- météo (Open-Meteo)
 let WX = null, wxKey = "", wxState = "idle";
@@ -641,6 +796,10 @@ async function loadJournalServer() {   // journal.json posé à côté de la pag
 }
 // ---------------------------------------------------------------- vos images AstroBin (astrobin.json écrit sur le serveur)
 let ASTROBIN = null;
+// space.json, écrit par tools/space_sync.py sur le serveur : comètes, TLE, taches solaires, indice Kp
+async function loadSpace() {
+  try { const r = await fetch("space.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j && typeof j === "object") SPACE = j; } } catch (e) {}
+}
 async function loadAstrobin() {
   try { const r = await fetch("astrobin.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); ASTROBIN = j && Array.isArray(j.images) ? j : null; } } catch (e) {}
 }
@@ -728,6 +887,7 @@ function renderTypeChips() {
   $("#rigChips").innerHTML = rigs.map(([k, l]) => `<button class="chip" type="button" data-k="${k}" aria-pressed="${rigFilter === k}">${esc(l)}</button>`).join("");
 }
 function renderTonight() {
+  renderSolarTonight();
   const nm = NM, rows = [];
   for (const o of CATALOG) {
     if (typeFilter !== "all" && FAMILY(o[2]) !== typeFilter) continue;
@@ -760,12 +920,215 @@ function renderTonight() {
   $("#tonightNote").textContent = L(`${rows.length} objets du catalogue sont observables au moins une heure ce soir au-dessus de ${S.minAlt}°. Classement : cadrage dans vos instruments, durée de visibilité, Lune, et notoriété de l'objet.`, `${rows.length} catalogue objects are observable for at least one hour tonight above ${S.minAlt}°. Ranking: framing in your rigs, visibility, Moon, and how well known the object is.`);
 }
 
+// ---- conseils pour le système solaire
+// poses typiques en vidéo (ms) au gain élevé, de f/10 à f/25
+const PLANET_MS = { mercury: [2, 5], venus: [1, 3], mars: [3, 8], jupiter: [6, 15], saturn: [15, 35], uranus: [50, 120], neptune: [80, 200] };
+const BARLOWS = [2, 2.5, 3, 4, 5];
+function planetSampling(r, f) {   // Barlow conseillée et taille du disque en pixels
+  const c = CAMS[r.cam], scale = rigFov(r).scale;
+  const target = Math.max(0.12, 116 / r.D / 3.3);                 // ″/px visé : pouvoir séparateur de Dawes / 3,3
+  const need = scale / target;
+  const barlow = r.dwarf || need < 1.6 ? 1 : BARLOWS.reduce((b, x) => Math.abs(x - need) < Math.abs(b - need) ? x : b, 2);
+  return { barlow, scale: scale / barlow, px: f.diam / (scale / barlow), px1: f.diam / scale, fr: r.F * barlow / r.D };
+}
+function adviseSolar(r, o, vis, nm) {
+  const s = o.solar, f = o.facts, fov = rigFov(r), c = CAMS[r.cam], notes = [], rows = [], sheet = [];
+  const row = (k, v) => { rows.push([k, v]); sheet.push(`${k}${COLON}${v.replace(/<[^>]+>/g, "")}`); };
+  let score = 0;
+  const lowAlt = vis.best < 25 && vis.best > -5;
+  if (s.kind === "comet") {
+    const a = advise(r, o, vis, nm);
+    const rate = f.rate || 0, pxPerS = rate / 60 / fov.scale;            // ″/min -> px/s
+    if (pxPerS > 0) { const tmax = 2 / pxPerS;
+      if (tmax < a.sub) { a.sub = niceSub(Math.max(5, tmax)); a.why = L("mouvement de la comète", "comet motion");
+        a.nSubs = Math.ceil(a.hours * 3600 / a.sub); a.tonightSubs = Math.floor(vis.usable * 3600 / (a.sub * 1.08)); } }
+    a.hours = Math.min(a.hours, 2); a.nSubs = Math.ceil(a.hours * 3600 / a.sub);
+    a.notes.unshift(L(`La comète se déplace de ${fmt(rate, 1)}″ par minute (${fmt(pxPerS * 60, 1)} px/min dans cet instrument) : empilez sur le noyau (Siril : alignement sur la comète ; PixInsight : CometAlignment) en plus d'un empilement sur les étoiles.`,
+      `The comet moves ${fmt(rate, 1)}″ per minute (${fmt(pxPerS * 60, 1)} px/min in this rig): stack on the nucleus (Siril: comet registration; PixInsight: CometAlignment) as well as on the stars.`));
+    a.notes.push(L(`Magnitude estimée ${fmt(f.mag, 1)} (formule du Minor Planet Center : souvent optimiste ou pessimiste d'une ou deux magnitudes pour une comète).`, `Estimated magnitude ${fmt(f.mag, 1)} (Minor Planet Center formula: comets often differ from it by one or two magnitudes).`));
+    a.comet = true;
+    return a;
+  }
+  if (s.kind === "planet") {
+    const smp = planetSampling(r, f), ms = PLANET_MS[s.key];
+    const P = s.rot, vidMax = P ? Math.max(20, Math.min(180, Math.round(P / (Math.PI * Math.max(smp.px, 1)) / 10) * 10)) : 180;
+    if (r.id === "dwide") return null;
+    row(L("Disque", "Disc"), `${fmt(f.diam, 1)}″ · <span class="num">${Math.round(smp.px1)} px</span>${smp.barlow > 1 ? L(` sans Barlow, <strong>${Math.round(smp.px)} px avec une Barlow ×${fmt(smp.barlow, 1)}</strong> (F/D ${Math.round(smp.fr)})`, ` without a Barlow, <strong>${Math.round(smp.px)} px with a ×${fmt(smp.barlow, 1)} Barlow</strong> (f/${Math.round(smp.fr)})`) : ""}`);
+    if (r.dwarf) {
+      row(L("Capture", "Capture"), L("vidéo courte ou rafale de poses courtes, puis empilement", "short video or burst of short exposures, then stacking"));
+      notes.push(L(`Avec ${Math.round(smp.px)} px de disque, le Dwarf donne une image souvenir : la planète et ses satellites, pas ses détails.`, `With a ${Math.round(smp.px)} px disc, the Dwarf gives a keepsake image: the planet and its moons, not its details.`));
+    } else if (r.cam === "canon") {
+      row(L("Capture", "Capture"), L("vidéo 720p en visée écran ×5 ou ×10, 1/250 à 1/60 s, ISO 800 à 1600", "720p video in 5× or 10× live view, 1/250 to 1/60 s, ISO 800 to 1600"));
+      notes.push(L("Le Canon filme sans recadrage : la planète ne fait que quelques pixels. Préférez l'ASI294 en ROI.", "The Canon films without cropping: the planet is only a few pixels across. Prefer the ASI294 with a ROI."));
+    } else {
+      row(L("Capture", "Capture"), L(`vidéo SER, ROI 640 × 480 ou plus petite, poses de ${ms[0]} à ${ms[1]} ms, gain élevé (≈ 300 à 400), histogramme vers 60 à 70 %`, `SER video, 640 × 480 ROI or smaller, ${ms[0]} to ${ms[1]} ms exposures, high gain (≈ 300 to 400), histogram around 60 to 70%`));
+      row(L("Durée d'une vidéo", "Video length"), L(`${vidMax} s au plus${P ? " (rotation de la planète)" : ""}, à répéter pendant la fenêtre`, `${vidMax} s at most${P ? " (planet rotation)" : ""}, repeat during the window`));
+      row(L("Traitement", "Processing"), L("AutoStakkert! (garder les 10 à 25 % meilleures images), puis ondelettes dans Registax ou Siril ; WinJUPOS pour dérotation", "AutoStakkert! (keep the best 10 to 25% of frames), then wavelets in Registax or Siril; WinJUPOS for derotation"));
+    }
+    row(L("Filtre", "Filter"), s.key === "venus" ? L("UV/IR-Cut ; Vénus est éblouissante : poses très courtes", "UV/IR-cut; Venus is dazzling: very short exposures") : "UV/IR-Cut");
+    if (!r.dwarf && smp.barlow > 1) notes.push(L(`Une Barlow ×${fmt(smp.barlow, 1)} rapproche l'échantillonnage du pouvoir séparateur de l'instrument (${fmt(116 / r.D, 1)}″). Sans Barlow, recadrez et agrandissez au traitement.`, `A ×${fmt(smp.barlow, 1)} Barlow brings the sampling close to the instrument's resolving power (${fmt(116 / r.D, 1)}″). Without one, crop and enlarge in processing.`));
+    if (r.eq) notes.push(L("Suivi sur la monture équatoriale, sans guidage : recentrez la planète entre deux vidéos.", "Track on the equatorial mount, no guiding: recentre the planet between videos."));
+    if (r.id === "n200") notes.push(L("Laissez le Newton se mettre en température 45 min avant de filmer, sinon la turbulence du tube brouille tout.", "Let the Newtonian cool down 45 min before filming, or tube currents will blur everything."));
+    if (f.illum != null && f.illum < 0.95 && (s.key === "venus" || s.key === "mercury" || s.key === "mars")) notes.push(L(`Phase : ${pc(f.illum * 100)} éclairé.`, `Phase: ${pc(f.illum * 100)} lit.`));
+    if (s.key === "saturn" && f.rings != null) notes.push(L(`Anneaux inclinés de ${fmt(Math.abs(f.rings), 1)}° vers la Terre${Math.abs(f.rings) < 4 ? " : presque vus par la tranche" : ""}.`, `Rings tilted ${fmt(Math.abs(f.rings), 1)}° towards Earth${Math.abs(f.rings) < 4 ? ": nearly edge-on" : ""}.`));
+    score = 0.65 * Math.min(1, smp.px / 150) + 0.35 * Math.min(1, r.D / 200) - (r.dwarf ? 0.2 : 0) - (r.cam === "canon" ? 0.25 : 0);
+  }
+  if (s.kind === "moon" || s.kind === "sun") {
+    const dDeg = f.diam / 3600, ratio = dDeg / Math.min(fov.w, fov.h);
+    if (ratio > 0.95) { const nx = Math.ceil(dDeg / (fov.w * 0.8)), ny = Math.ceil(dDeg / (fov.h * 0.8));
+      row(L("Cadrage", "Framing"), L(`disque de ${fmt(dDeg * 60, 1)}′ pour un champ de ${fmt(fov.w * 60, 0)}′ × ${fmt(fov.h * 60, 0)}′ : mosaïque de ${nx} × ${ny} panneaux, ou un détail`, `${fmt(dDeg * 60, 1)}′ disc for a ${fmt(fov.w * 60, 0)}′ × ${fmt(fov.h * 60, 0)}′ field: ${nx} × ${ny} panel mosaic, or a detail`));
+      score = 0.85; }
+    else { row(L("Cadrage", "Framing"), L(`disque entier dans le champ (${pc(ratio * 100)} de la hauteur), ${Math.round(f.diam / fov.scale)} px de diamètre`, `whole disc in the field (${pc(ratio * 100)} of its height), ${Math.round(f.diam / fov.scale)} px across`));
+      score = ratio > 0.45 ? 1 : 0.4 + ratio; }
+    score = 0.6 * score + 0.4 * Math.min(1, r.D / 200);
+    if (r.id === "dwide") score -= 0.4;
+  }
+  if (s.kind === "moon") {
+    const ill = f.illum || 0;
+    if (r.dwarf) row(L("Capture", "Capture"), L("poses courtes (au millième de seconde), quelques centaines d'images à empiler", "short exposures (around a millisecond), a few hundred frames to stack"));
+    else if (r.cam === "canon") row(L("Capture", "Capture"), L(`photos en rafale à ISO 100 : ≈ 1/${ill > 0.7 ? 500 : ill > 0.3 ? 250 : 60} s, 30 à 50 images à empiler`, `burst of photos at ISO 100: ≈ 1/${ill > 0.7 ? 500 : ill > 0.3 ? 250 : 60} s, 30 to 50 frames to stack`));
+    else row(L("Capture", "Capture"), L(`vidéo SER plein capteur ou par panneau, ${ill > 0.7 ? "1 à 3" : ill > 0.3 ? "2 à 5" : "4 à 10"} ms, gain bas (≈ 100), 500 à 1 000 images par panneau`, `full-sensor or per-panel SER video, ${ill > 0.7 ? "1 to 3" : ill > 0.3 ? "2 to 5" : "4 to 10"} ms, low gain (≈ 100), 500 to 1,000 frames per panel`));
+    row(L("Filtre", "Filter"), r.dwarf ? "VIS (Dwarf)" : "UV/IR-Cut");
+    const mosaic = f.diam / 3600 > Math.min(fov.w, fov.h) * 0.95;
+    row(L("Traitement", "Processing"), mosaic ? L("AutoStakkert! (garder 20 à 30 %), ondelettes, puis assemblage de la mosaïque (Microsoft ICE, Hugin)", "AutoStakkert! (keep 20 to 30%), wavelets, then mosaic assembly (Microsoft ICE, Hugin)") : L("AutoStakkert! (garder 20 à 30 %), puis ondelettes dans Registax ou Siril", "AutoStakkert! (keep 20 to 30%), then wavelets in Registax or Siril"));
+    if (ill > 0.9) notes.push(L("Pleine Lune : relief écrasé, sans ombres. Les détails sont plus beaux le long du terminateur, à d'autres phases.", "Full Moon: flat relief, no shadows. Details look best along the terminator at other phases."));
+    else notes.push(L(`Lune éclairée à ${pc(ill * 100)} : visez le terminateur, où les ombres font ressortir le relief.`, `Moon ${pc(ill * 100)} lit: aim for the terminator, where shadows bring out the relief.`));
+    if (ill < 0.25 && ill > 0.02) notes.push(L("Fin croissant : la lumière cendrée se photographie avec des poses de 0,5 à 2 s (la partie éclairée sera brûlée).", "Thin crescent: earthshine needs 0.5 to 2 s exposures (the lit part will burn out)."));
+  }
+  if (s.kind === "sun") {
+    if (r.dwarf) row(L("Filtre", "Filter"), `<strong>${L("filtre solaire fourni avec le Dwarf 3, posé avant de viser le Soleil", "the solar filter supplied with the Dwarf 3, fitted before pointing at the Sun")}</strong>`);
+    else row(L("Filtre", "Filter"), `<strong>${L("film solaire pleine ouverture (type Baader AstroSolar ND 5) fixé devant le tube", "full-aperture solar film (Baader AstroSolar ND 5 type) fixed over the tube")}</strong>`);
+    if (r.dwarf) row(L("Capture", "Capture"), L("mode Soleil de l'appli si disponible, sinon poses courtes et empilement", "the app's Sun mode if available, otherwise short exposures and stacking"));
+    else if (r.cam === "canon") row(L("Capture", "Capture"), L("ISO 100, ≈ 1/1000 s derrière le film ND 5, rafale de 30 à 50 photos", "ISO 100, ≈ 1/1000 s behind ND 5 film, burst of 30 to 50 photos"));
+    else row(L("Capture", "Capture"), L("vidéo SER, 1 à 3 ms derrière le film ND 5, gain bas, 500 à 1 000 images", "SER video, 1 to 3 ms behind ND 5 film, low gain, 500 to 1,000 frames"));
+    if (!r.dwarf) notes.push(L("Sans film solaire pleine ouverture, n'utilisez pas cet instrument : bouchez aussi la lunette guide et le chercheur.", "Without full-aperture solar film, do not use this rig: also cap the guide scope and the finder."));
+    notes.push(L("La turbulence est souvent plus faible le matin, Soleil entre 20 et 40° de hauteur.", "Seeing is often better in the morning, with the Sun 20 to 40° high."));
+    score += r.dwarf ? 0.5 : 0;                                      // seul filtre solaire connu de votre matériel
+  }
+  if (lowAlt && s.kind !== "sun") notes.push(L(`Hauteur maxi ${Math.round(vis.best)}° : la turbulence et la dispersion atmosphérique limiteront les détails.`, `Maximum altitude ${Math.round(vis.best)}°: seeing and atmospheric dispersion will limit detail.`));
+  if ((s.key === "mercury" || s.key === "venus") && f.elong < 20) notes.push(L(`À ${Math.round(f.elong)}° du Soleil : ne cherchez jamais la planète tant que le Soleil peut entrer dans le champ.`, `${Math.round(f.elong)}° from the Sun: never search for the planet while the Sun could enter the field.`));
+  if (vis.usable < 0.3 && s.kind !== "sun") score -= 0.3;
+  return { r, fov, rows, sheet, notes, score, solar: true };
+}
+function bestRigsSolar(o, vis, nm) {
+  return RIGS.filter(r => S.rigs.includes(r.id)).map(r => adviseSolar(r, o, vis, nm)).filter(Boolean).sort((a, b) => b.score - a.score);
+}
+
+// ---- système solaire : tableau de « Ce soir » et fiche
+const SUN_WARN = () => `<div class="danger" role="alert"><strong>${L("Danger : ne visez jamais le Soleil sans filtre solaire.", "Danger: never point at the Sun without a solar filter.")}</strong>
+  ${L("Une seule seconde dans un instrument non filtré suffit à brûler l'œil, sans douleur, de façon définitive, et à détruire la caméra. Le filtre se pose devant l'objectif (film ou verre solaire certifié ISO 12312-2, pleine ouverture), jamais à l'oculaire. Bouchez le chercheur et la lunette guide, et vérifiez le film (aucun trou) avant chaque séance.",
+      "A single second through an unfiltered instrument is enough to burn the eye, painlessly and permanently, and to destroy the camera. The filter goes over the front of the instrument (certified ISO 12312-2 solar film or glass, full aperture), never at the eyepiece. Cap the finder and the guide scope, and check the film (no holes) before every session.")}</div>`;
+function solarSub(o) {   // petite ligne descriptive
+  const f = o.facts, s = o.solar, bits = [];
+  if (s.kind === "comet") bits.push(L("comète", "comet"), `${L("à", "")} ${fmt(f.dist, 2)} ${L("UA de la Terre", "AU from Earth")}`.trim());
+  else bits.push(s.kind === "sun" ? L("étoile", "star") : s.kind === "moon" ? L("satellite de la Terre", "Earth's satellite") : L("planète", "planet"));
+  if (f.illum != null && s.kind !== "sun" && f.illum < 0.97) bits.push(L(`éclairée à ${pc(f.illum * 100)}`, `${pc(f.illum * 100)} lit`));
+  return bits.join(" · ");
+}
+function solarWindow(o, vis) {
+  if (!vis.usable) return `<span class="muted">${o.solar.kind === "sun" ? L(`sous ${S.minAlt}° toute la journée`, `below ${S.minAlt}° all day`) : L(`sous ${S.minAlt}° de nuit`, `below ${S.minAlt}° at night`)}</span>`;
+  return `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)}`;
+}
+function renderSolarTonight() {
+  const nm = NM, rows = [], low = [];
+  for (const o of makeSolar(nm)) {
+    const isSun = o.solar.kind === "sun", m = isSun ? dayModel() : nm, vis = visibility(o, m);
+    if (!vis.usable && !isSun) { if (o.solar.kind !== "comet") low.push(o); continue; }
+    const rigs = bestRigsSolar(o, vis, m);
+    rows.push({ o, vis, b: rigs[0], m });
+  }
+  const order = { moon: 0, planet: 1, comet: 2, sun: 3 };
+  rows.sort((a, b) => order[a.o.solar.kind] - order[b.o.solar.kind] || b.vis.usable - a.vis.usable);
+  $("#solarBody").innerHTML = rows.map(({ o, vis, b }) => `
+    <tr class="click" data-id="${esc(oid(o))}" tabindex="0">
+      <td><div class="obj">${o.solar.kind === "sun" ? "☀ " : ""}${esc(o[0])}<small>${esc(solarSub(o))}</small></div></td>
+      <td class="num">${o[7] != null ? fmt(o[7], 1) : "—"}</td>
+      <td class="num">${sizeSolar(o)}</td>
+      <td class="num">${solarWindow(o, vis)}${o.solar.kind === "sun" ? `<br><span class="muted">${L("de jour", "daytime")}</span>` : ""}</td>
+      <td class="num">${vis.usable ? `${Math.round(vis.best)}° ${L("vers", "at")} ${hhmm(vis.bestT)}` : "—"}</td>
+      <td>${b ? `${esc(b.r.short)}${b.solar && o.solar.kind === "planet" && !b.r.dwarf ? `<br><span class="muted">${Math.round(planetSampling(b.r, o.facts).px)} px${planetSampling(b.r, o.facts).barlow > 1 ? ` (Barlow ×${fmt(planetSampling(b.r, o.facts).barlow, 1)})` : ""}</span>` : ""}${o.solar.kind === "sun" ? `<br><span class="pill bad">${L("filtre solaire obligatoire", "solar filter required")}</span>` : ""}${b.comet ? `<br><span class="muted">${esc(FILTERS[b.filt].name.split(" (")[0])} · ${b.sub} s</span>` : ""}` : "—"}</td>
+    </tr>`).join("") || `<tr><td colspan="6" class="muted">${L("Aucun objet du système solaire bien placé ce soir.", "No solar system object well placed tonight.")}</td></tr>`;
+  $("#solarNote").textContent = low.length ? L(`Trop bas ou de jour ce soir : ${low.map(o => o[0]).join(", ")}.`, `Too low or in daylight tonight: ${low.map(o => o[0]).join(", ")}.`) : "";
+}
+function sheetSolar(o, vis, nm, a) {
+  const out = [], isSun = o.solar.kind === "sun";
+  out.push(L(`AstroPlan — ${o[0]}, ${isSun ? "journée" : "soirée"} du ${new Date(nm.t0).toLocaleDateString(LOCALE)}`, `AstroPlan — ${o[0]}, ${isSun ? "day" : "evening"} of ${new Date(nm.t0).toLocaleDateString(LOCALE)}`));
+  out.push(`${L("Lieu", "Site")}${COLON}${S.siteName} (${fmt(S.lat, 4)}°, ${fmt(S.lon, 4)}°)`);
+  if (isSun) out.push(L("ATTENTION : filtre solaire pleine ouverture obligatoire, chercheur et lunette guide bouchés.", "WARNING: full-aperture solar filter required, finder and guide scope capped."));
+  out.push(L(`Au-dessus de ${S.minAlt}° : ${vis.usable ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : "jamais"}, au plus haut ${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}`,
+             `Above ${S.minAlt}°: ${vis.usable ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : "never"}, highest ${Math.round(vis.best)}° around ${hhmm(vis.bestT)}`));
+  out.push(`${L("Magnitude", "Magnitude")}${COLON}${fmt(o[7], 1)} · ${L("diamètre", "diameter")} ${sizeSolar(o)}${o.facts.illum != null && !isSun ? ` · ${L("éclairée à", "lit")} ${pc(o.facts.illum * 100)}` : ""}`);
+  const w = wxSpan(vis.wStart, vis.wEnd);
+  if (w) out.push(L(`Météo : ${Math.round(w.cc)} % de nuages, vent jusqu'à ${Math.round(w.gust)} km/h`, `Weather: ${Math.round(w.cc)}% cloud, gusts up to ${Math.round(w.gust)} km/h`));
+  out.push("");
+  out.push(`${L("Matériel", "Rig")}${COLON}${a.r.name}`);
+  out.push(...a.sheet);
+  for (const n of a.notes) out.push("• " + n);
+  return out.join("\n");
+}
+function renderSolarTarget(o) {
+  const pane = $("#targetPane"), s = o.solar, isSun = s.kind === "sun", nm = isSun ? dayModel() : NM, vis = visibility(o, nm), f = o.facts;
+  const rigs = bestRigsSolar(o, vis, nm);
+  const visTxt = vis.usable > 0 ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : (isSun ? L(`jamais au-dessus de ${S.minAlt}°`, `never above ${S.minAlt}°`) : L(`jamais au-dessus de ${S.minAlt}° de nuit`, `never above ${S.minAlt}° at night`));
+  const ssn = SPACE && SPACE.ssn && SPACE.ssn.value != null ? SPACE.ssn : null;
+  const extra = [];
+  if (f.illum != null && !isSun && f.illum < 0.97) extra.push([L("Phase", "Phase"), L(`éclairée à ${pc(f.illum * 100)}`, `${pc(f.illum * 100)} lit`)]);
+  if (s.kind === "planet" || s.kind === "comet") extra.push([L("Élongation", "Elongation"), L(`${Math.round(f.elong)}° du Soleil`, `${Math.round(f.elong)}° from the Sun`)]);
+  if (f.dist != null) extra.push([L("Distance", "Distance"), s.kind === "moon" ? `${Math.round(f.dist * AU_KM).toLocaleString(LOCALE)} km` : `${fmt(f.dist, 3)} ${L("UA", "AU")}`]);
+  if (s.kind === "comet") extra.push([L("Mouvement", "Motion"), L(`${fmt(f.rate, 1)}″ par minute`, `${fmt(f.rate, 1)}″ per minute`)]);
+  if (isSun && ssn) extra.push([L("Taches solaires", "Sunspots"), L(`nombre de Wolf ${ssn.value} (${new Date(ssn.date + "T12:00").toLocaleDateString(LOCALE)})`, `sunspot number ${ssn.value} (${new Date(ssn.date + "T12:00").toLocaleDateString(LOCALE)})`)]);
+  pane.innerHTML = `<h2>${isSun ? "☀ " : ""}${esc(o[0])}</h2>
+    <p class="muted" style="margin:2px 0 0">${esc(solarSub(o))} · ${L("diamètre", "diameter")} ${sizeSolar(o)} · magnitude ${fmt(o[7], 1)}</p>
+    ${isSun ? SUN_WARN() : ""}
+    <div class="grid2" style="margin-top:12px">
+      <div class="card chart"><h3>${isSun ? L("Hauteur pendant la journée", "Altitude through the day") : L("Hauteur pendant la nuit", "Altitude through the night")}</h3>${altChart(o, vis, nm)}
+        <div class="legend"><span><i style="background:var(--target)"></i>${esc(o[0])}</span>${s.kind !== "moon" && !isSun ? `<span><i style="background:var(--moon)"></i>${L("Lune", "Moon")}</span>` : ""}<span><i style="background:var(--muted);opacity:.5;height:8px"></i>${L(`sous ${S.minAlt}° ou derrière un obstacle`, `below ${S.minAlt}° or behind an obstacle`)}</span><span><i style="background:var(--accent);height:5px"></i>${L("fenêtre utile", "usable window")}</span></div></div>
+      <div class="card"><h3>${isSun ? L("Aujourd'hui", "Today") : L("Ce soir", "Tonight")}</h3>
+        <dl class="rigdl" style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:8px 0 0">
+          <dt class="muted">${L("Fenêtre", "Window")}</dt><dd class="num" style="margin:0">${visTxt}</dd>
+          <dt class="muted">${L("Au plus haut", "Highest")}</dt><dd class="num" style="margin:0">${L(`${Math.round(vis.best)}° vers ${hhmm(vis.bestT)}`, `${Math.round(vis.best)}° around ${hhmm(vis.bestT)}`)}</dd>
+          ${extra.map(([k, v]) => `<dt class="muted">${k}</dt><dd style="margin:0">${v}</dd>`).join("")}
+          <dt class="muted">RA / DEC</dt><dd class="num" style="margin:0">${raStr(vis.ra)} · ${decStr(vis.dec)}</dd>
+          <dt class="muted">${L("Météo", "Weather")}</dt><dd style="margin:0">${wxText(vis)}</dd>
+        </dl>
+        <p style="margin:10px 0 0"><a href="#nuits">${isSun ? L("Voir les meilleurs jours", "See the best days") : L(`Voir les meilleures nuits pour ${esc(o[0])}`, `See the best nights for ${esc(o[0])}`)}</a>${isSun ? ` · <a href="#alertes">${L("Taches et éclipses", "Spots and eclipses")}</a>` : ""}</p></div>
+    </div>
+    ${isSun ? `<div class="card" style="margin-top:16px"><h3>${L("Le Soleil aujourd'hui, vu par SDO (NASA)", "The Sun today, seen by SDO (NASA)")}</h3>
+      <div class="sdo"><img id="sdoImg" src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_HMIIF.jpg" alt="${L("Disque solaire en lumière visible, dernière image du satellite SDO", "Solar disc in visible light, latest image from the SDO satellite")}" loading="lazy" width="512" height="512">
+      <p class="note">${L("Image en lumière blanche (instrument HMI) : ce que montrent vos instruments avec un film solaire. Les taches tournent avec le Soleil en 27 jours environ.", "White-light image (HMI instrument): what your rigs show with solar film. Spots rotate with the Sun in about 27 days.")}${ssn ? L(` Nombre de taches du jour : <strong>${ssn.value}</strong>.`, ` Today's sunspot number: <strong>${ssn.value}</strong>.`) : ""}</p></div></div>` : ""}
+    ${astrobinCard(o)}
+    <h2 style="margin-top:22px">${L("Avec quel instrument ?", "Which rig?")}</h2>
+    <div class="stack" style="margin-top:10px">${rigs.map((a, i) => `
+      <article class="rig ${i === 0 ? "best" : ""}">
+        <div class="frame">${frameSvg(a, o)}</div>
+        <div><h3>${esc(a.r.name)} ${i === 0 ? `<span class="badge">${L("conseillé", "advised")}</span>` : ""}</h3>
+          <dl>
+            <dt>${L("Champ", "Field")}</dt><dd class="num">${fmt(a.fov.w, 2)}° × ${fmt(a.fov.h, 2)}° · ${fmt(a.fov.scale, 2)}″/px</dd>
+            ${a.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}
+            <dt>${L("Monture", "Mount")}</dt><dd>${esc(a.r.mount)}</dd>
+          </dl>
+          ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+          ${i === 0 ? `<details style="margin-top:10px"><summary>${isSun ? L("Fiche de la journée", "Day sheet") : L("Fiche de soirée", "Session sheet")}</summary><pre class="sheet" id="sheetTxt">${esc(sheetSolar(o, vis, nm, a))}</pre><button class="btn" type="button" id="copySheet">${L("Copier la fiche", "Copy the sheet")}</button> <span class="muted" id="copyMsg"></span></details>` : ""}
+        </div></article>`).join("") || `<p class="note">${L("Aucun instrument coché dans « Matériel et lieu ».", "No rig ticked in “Gear & site”.")}</p>`}</div>`;
+  const im = $("#sdoImg");
+  if (im) im.addEventListener("error", () => { im.replaceWith(Object.assign(document.createElement("p"), { className: "muted", textContent: L("Image de SDO indisponible pour l'instant.", "SDO image unavailable for now.") })); });
+  wireCopy();
+}
+function wireCopy() {
+  const cb = $("#copySheet");
+  if (cb) cb.addEventListener("click", async () => {
+    const txt = $("#sheetTxt").textContent;
+    try { await navigator.clipboard.writeText(txt); $("#copyMsg").textContent = L("Fiche copiée", "Sheet copied"); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($("#sheetTxt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#copyMsg").textContent = L("Texte sélectionné : Ctrl+C pour copier", "Text selected: press Ctrl+C to copy"); }
+  });
+}
+
 // ---- Cible
 function findObjects(q) {
   const n = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "");
   const k = n(q); if (!k) return [];
   const exact = [], part = [];
-  for (const o of CATALOG) {
+  for (const o of SOLAR.concat(CATALOG)) {
     const keys = [o[0], o[1], o[9], o[11]].filter(Boolean).map(n);
     if (keys.some(x => x === k)) exact.push(o); else if (keys.some(x => x.includes(k))) part.push(o);
   }
@@ -773,7 +1136,9 @@ function findObjects(q) {
 }
 function altChart(o, vis, nm) {
   const W = 640, H = 230, L = 34, R = 10, T = 10, B = 26;
-  const t0 = nm.sunset ? nm.sunset - 3600e3 : nm.t0 + 5 * 3.6e6, t1 = nm.sunrise ? nm.sunrise + 3600e3 : nm.t0 + 19 * 3.6e6;
+  const day = o.solar && o.solar.kind === "sun";
+  const t0 = day ? (nm.sunrise ? nm.sunrise - 3600e3 : nm.t0 + 5 * 3.6e6) : nm.sunset ? nm.sunset - 3600e3 : nm.t0 + 5 * 3.6e6,
+        t1 = day ? (nm.sunset ? nm.sunset + 3600e3 : nm.t0 + 21 * 3.6e6) : nm.sunrise ? nm.sunrise + 3600e3 : nm.t0 + 19 * 3.6e6;
   const X = t => L + (t - t0) / (t1 - t0) * (W - L - R), Y = a => T + (90 - a) / 90 * (H - T - B);
   // bandes de crépuscule et de nuit noire, une par période continue
   let bands = "", run = null;
@@ -786,7 +1151,7 @@ function altChart(o, vis, nm) {
   flush(t1);
   const path = (vals, f) => { let d = "", on = false; for (let k = 0; k < nm.times.length; k++) { const t = nm.times[k]; if (t < t0 || t > t1) continue;
     const v = f(k); if (v < -2) { on = false; continue; } d += `${on ? "L" : "M"}${X(t).toFixed(1)},${Y(Math.max(0, v)).toFixed(1)}`; on = true; } return d; };
-  const tgt = path(vis.alts, k => vis.alts[k]), moon = path(null, k => nm.moons[k].alt);
+  const tgt = path(vis.alts, k => vis.alts[k]), moon = o.solar && (o.solar.kind === "moon" || day) ? "" : path(null, k => nm.moons[k].alt);
   // obstacles dans la direction de la cible
   let obs = "", first = true;
   for (let k = 0; k < nm.times.length; k++) { const t = nm.times[k]; if (t < t0 || t > t1) continue;
@@ -934,9 +1299,10 @@ function drawPreview(o, rigs, onlyAngle) {
 function renderTarget() {
   const o = current, pane = $("#targetPane");
   if (!o) { pane.innerHTML = `<p class="note">${L("Cherchez une cible par son nom ou son numéro, ou choisissez-en une dans l'onglet « Ce soir ».", "Search for a target by name or number, or pick one in the “Tonight” tab.")}</p>`; return; }
-  const nm = NM, vis = visibility(o, nm), rigs = bestRigs(o, vis, nm);
+  if (o.solar && o.solar.kind !== "comet") return renderSolarTarget(o);
+  const nm = NM, vis = visibility(o, nm), rigs = o.solar ? bestRigsSolar(o, vis, nm) : bestRigs(o, vis, nm);
   const head = `<h2>${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}</h2>
-    <p class="muted" style="margin:2px 0 0">${esc(label(o))}${objName(o) ? " · " + esc(TYPES[o[2]] || o[2]) : ""} · ${size(o)}${o[7] != null ? " · magnitude " + fmt(o[7], 1) : ""}${o[10] ? L(" · coordonnées approchées", " · approximate coordinates") : ""}</p>`;
+    <p class="muted" style="margin:2px 0 0">${o.solar ? esc(solarSub(o)) : esc(label(o)) + (objName(o) ? " · " + esc(TYPES[o[2]] || o[2]) : "") + " · " + size(o)}${o[7] != null ? " · magnitude " + fmt(o[7], 1) : ""}${o[10] ? L(" · coordonnées approchées", " · approximate coordinates") : ""}${o.solar ? L(` · se déplace de ${fmt(o.facts.rate, 1)}″/min`, ` · moves ${fmt(o.facts.rate, 1)}″/min`) : ""}</p>`;
   const visTxt = vis.usable > 0 ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : L(`jamais au-dessus de ${S.minAlt}° en nuit noire`, `never above ${S.minAlt}° in darkness`);
   const best = rigs[0];
   const why = a => a.why;
@@ -984,42 +1350,39 @@ function renderTarget() {
           ${i === 0 ? `<details style="margin-top:10px"><summary>${L("Fiche de soirée", "Session sheet")}</summary><pre class="sheet" id="sheetTxt">${esc(sheet(o, vis, nm, a))}</pre><button class="btn" type="button" id="copySheet">${L("Copier la fiche", "Copy the sheet")}</button> <span class="muted" id="copyMsg"></span></details>` : ""}
         </div></article>`).join("") || `<p class="note">${L("Aucun instrument coché dans « Matériel et lieu ».", "No rig ticked in “Gear & site”.")}</p>`}</div>`;
   drawPreview(o, rigs);
-  $("#pvRig").addEventListener("change", e => { pvState.rig = e.target.value; drawPreview(o, rigs); });
+  $("#pvRig") && $("#pvRig").addEventListener("change", e => { pvState.rig = e.target.value; drawPreview(o, rigs); });
   $("#pvAngle").addEventListener("input", e => { pvState.angle = Number(e.target.value); $("#pvAngleV").textContent = pvState.angle; drawPreview(o, rigs, true); });
   pane.querySelectorAll("[data-pv]").forEach(b => b.addEventListener("click", () => { pvState.mode = b.dataset.pv;
     pane.querySelectorAll("[data-pv]").forEach(x => x.setAttribute("aria-pressed", x.dataset.pv === pvState.mode)); drawPreview(o, rigs); }));
-  const cb = $("#copySheet");
-  if (cb) cb.addEventListener("click", async () => {
-    const txt = $("#sheetTxt").textContent;
-    try { await navigator.clipboard.writeText(txt); $("#copyMsg").textContent = L("Fiche copiée", "Sheet copied"); }
-    catch (e) { const r = document.createRange(); r.selectNodeContents($("#sheetTxt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#copyMsg").textContent = L("Texte sélectionné : Ctrl+C pour copier", "Text selected: press Ctrl+C to copy"); }
-  });
+  wireCopy();
 }
 
 // ---- Meilleures nuits
 function renderNights() {
   const o = current, pane = $("#nightsPane");
   if (!o) { $("#nightsTitle").textContent = L("Meilleures nuits", "Best nights"); pane.innerHTML = `<p class="note">${L("Choisissez d'abord une cible (onglet « Cible » ou « Ce soir »).", "Pick a target first (“Target” or “Tonight” tab).")}</p>`; return; }
-  $("#nightsTitle").textContent = L(`Meilleures nuits pour ${o[0]}`, `Best nights for ${o[0]}`);
+  const isSun = o.solar && o.solar.kind === "sun";
+  $("#nightsTitle").textContent = isSun ? L("Meilleurs jours pour le Soleil", "Best days for the Sun") : L(`Meilleures nuits pour ${o[0]}`, `Best nights for ${o[0]}`);
   const n = Number($("#nightsSpan").value), start = dateValue(), emi = EMISSION.has(o[2]);
   const [y, m, d] = start.split("-").map(Number), rows = [];
   for (let i = 0; i < n; i++) {
     const day = new Date(y, m - 1, d + i), ds = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-    const nm = nightModel(ds, 15), vis = visibility(o, nm);
+    const nm = nightModel(ds, 15, isSun ? 0 : 12), vis = visibility(o, nm);
     const moonHit = vis.usable > 0 ? (vis.moonUp / vis.usable) * nm.moonIllum : 0;
     const w = wxSpan(vis.wStart, vis.wEnd);
-    let quality = vis.usable * (1 - (emi ? 0.4 : 0.9) * moonHit);
+    // système solaire : la hauteur compte (turbulence), la Lune presque pas, sauf pour les comètes
+    let quality = o.solar && o.solar.kind !== "comet" ? vis.usable * (0.4 + 0.6 * Math.sin(Math.max(0, vis.best) * D2R)) : vis.usable * (1 - (emi ? 0.4 : 0.9) * moonHit);
     if (w) quality *= Math.max(0, 1 - w.cc / 100);
     rows.push({ ds, t: nm.t0, vis, nm, quality, moonHit, w });
   }
   const mx = Math.max(0.01, ...rows.map(r => r.quality));
-  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>${L("Soirée", "Evening")}</th><th class="num">${L("Fenêtre utile", "Usable window")}</th><th class="num">${L("Durée", "Duration")}</th><th>${L("Lune", "Moon")}</th><th>${L("Nuages", "Cloud")}</th><th class="num">${L("Fond", "Sky")}</th><th>${L("Qualité", "Quality")}</th></tr></thead><tbody>
+  pane.innerHTML = `<div class="tablewrap"><table><thead><tr><th>${isSun ? L("Journée", "Day") : L("Soirée", "Evening")}</th><th class="num">${L("Fenêtre utile", "Usable window")}</th><th class="num">${L("Durée", "Duration")}</th><th>${L("Lune", "Moon")}</th><th>${L("Nuages", "Cloud")}</th><th class="num">${o.solar && o.solar.kind !== "comet" ? L("Au plus haut", "Highest") : L("Fond", "Sky")}</th><th>${L("Qualité", "Quality")}</th></tr></thead><tbody>
     ${rows.map(r => `<tr class="click" data-date="${r.ds}" tabindex="0"><td>${dayFr(r.t)}</td><td class="num">${r.vis.usable ? `${hhmm(r.vis.wStart)} – ${hhmm(r.vis.wEnd)}` : "—"}</td><td class="num">${r.vis.usable ? hm(r.vis.usable) : "—"}</td>
-      <td>${pc(r.nm.moonIllum * 100)}${r.vis.moonUp > 0.2 ? L(`, levée ${hm(r.vis.moonUp)}`, `, up ${hm(r.vis.moonUp)}`) : L(", absente", ", absent")}</td>
-      <td>${r.w ? `<span class="pill ${cloudClass(r.w.cc)}">${pc(r.w.cc)}</span>${r.w.dewAt ? L(" · buée", " · dew") : ""}` : '<span class="muted">—</span>'}</td><td class="num">${fmt(r.vis.sky, 1)}</td>
+      <td>${isSun ? "—" : pc(r.nm.moonIllum * 100) + (r.vis.moonUp > 0.2 ? L(`, levée ${hm(r.vis.moonUp)}`, `, up ${hm(r.vis.moonUp)}`) : L(", absente", ", absent"))}</td>
+      <td>${r.w ? `<span class="pill ${cloudClass(r.w.cc)}">${pc(r.w.cc)}</span>${r.w.dewAt ? L(" · buée", " · dew") : ""}` : '<span class="muted">—</span>'}</td><td class="num">${o.solar && o.solar.kind !== "comet" ? `${Math.round(r.vis.best)}°` : fmt(r.vis.sky, 1)}</td>
       <td><div class="bar" title="${fmt(r.quality, 1)} ${L("h utiles équivalentes", "equivalent usable h")}"><i style="width:${Math.round(100 * r.quality / mx)}%"></i></div></td></tr>`).join("")}
     </tbody></table></div>
-    <p class="note">${L(`Qualité : heures de nuit noire au-dessus de ${S.minAlt}°, réduites par la Lune ${emi ? "(modérément : cible en émission, filtre bi-bande)" : "(fortement : cible à photographier sans filtre)"}.`, `Quality: dark hours above ${S.minAlt}°, reduced by the Moon ${emi ? "(moderately: emission target, dual-band filter)" : "(strongly: target to shoot without a filter)"}.`)} ${WX ? L("Les nuages prévus (Open-Meteo, 16 jours) réduisent la note ; au-delà, seule la Lune compte.", "Forecast cloud (Open-Meteo, 16 days) lowers the score; beyond that, only the Moon counts.") : L("Prévision météo indisponible ici : consultez", "Weather forecast unavailable here: see")} <a href="https://clearoutside.com/forecast/${Number(S.lat).toFixed(2)}/${Number(S.lon).toFixed(2)}" target="_blank" rel="noopener">Clear Outside</a>. ${L("Cliquez sur une soirée pour l'ouvrir.", "Click an evening to open it.")}</p>`;
+    <p class="note">${o.solar && o.solar.kind !== "comet" ? L(`Qualité : heures au-dessus de ${S.minAlt}°${isSun ? "" : " (Soleil à plus de 6° sous l'horizon)"}, pondérées par la hauteur maximale, car la turbulence baisse quand l'objet monte.`, `Quality: hours above ${S.minAlt}°${isSun ? "" : " (Sun more than 6° below the horizon)"}, weighted by the maximum altitude, since seeing improves as the object climbs.`) : L(`Qualité : heures de nuit noire au-dessus de ${S.minAlt}°, réduites par la Lune ${emi ? "(modérément : cible en émission, filtre bi-bande)" : "(fortement : cible à photographier sans filtre)"}.`, `Quality: dark hours above ${S.minAlt}°, reduced by the Moon ${emi ? "(moderately: emission target, dual-band filter)" : "(strongly: target to shoot without a filter)"}.`)} ${WX ? L("Les nuages prévus (Open-Meteo, 16 jours) réduisent la note ; au-delà, seule la Lune compte.", "Forecast cloud (Open-Meteo, 16 days) lowers the score; beyond that, only the Moon counts.") : L("Prévision météo indisponible ici : consultez", "Weather forecast unavailable here: see")} <a href="https://clearoutside.com/forecast/${Number(S.lat).toFixed(2)}/${Number(S.lon).toFixed(2)}" target="_blank" rel="noopener">Clear Outside</a>. ${L("Cliquez sur une soirée pour l'ouvrir.", "Click an evening to open it.")}</p>`;
 }
 
 // ---- Carte du ciel
@@ -1105,6 +1468,23 @@ function drawMap() {
   const free = (x, y, w, h) => !placed.some(r => x < r[0] + r[2] && x + w > r[0] && y < r[1] + r[3] && y + h > r[1]);
   const objs = CATALOG.filter(o => MAP.filter === "best" ? best.has(o[0]) : MAP.filter === "all" ? true : FAMILY(o[2]) === MAP.filter);
   g.textAlign = "left";
+  // Soleil, planètes et comètes (la Lune est dessinée plus haut, ici on la rend seulement cliquable)
+  const sunH = altaz(...solarRaDecSafe(SOLAR.find(o => o.solar.kind === "sun"), jd), jd);
+  for (const o of SOLAR) {
+    const [r, d] = solarRaDecSafe(o, jd), h = altaz(r, d, jd); if (h.alt < -1) continue;
+    const [x, y] = proj(h.alt, h.az), k = o.solar.kind, good = h.alt >= minAltAt(h.az);
+    if (k === "moon") { MAP.hits.push({ o, x, y, r: 14, alt: h.alt, az: h.az, good }); continue; }
+    if (k === "sun") { g.fillStyle = red ? "#ff6a55" : "#ffd34d"; g.beginPath(); g.arc(x, y, 10, 0, 2 * Math.PI); g.fill(); }
+    else if (k === "planet") { const rad = Math.max(2.5, Math.min(6, 3.5 - o[7] * 0.7));
+      g.fillStyle = red ? "#ff6a55" : (PLANET_COL[o.solar.key] || "#fff"); g.beginPath(); g.arc(x, y, rad, 0, 2 * Math.PI); g.fill();
+      g.strokeStyle = red ? "#a8261c" : "rgba(0,0,0,.5)"; g.lineWidth = 1; g.stroke(); }
+    else { const [sx, sy] = proj(sunH.alt, sunH.az), dl = Math.hypot(x - sx, y - sy) || 1;   // queue à l'opposé du Soleil
+      g.strokeStyle = red ? "#ff6a55" : "#9fe8ff"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (x - sx) / dl * 16, y + (y - sy) / dl * 16); g.stroke();
+      g.fillStyle = g.strokeStyle; g.beginPath(); g.arc(x, y, 3, 0, 2 * Math.PI); g.fill(); }
+    g.font = `600 12px ${css("--f-body")}`; const tw = g.measureText(o[0]).width, lx = x + 9, ly = y - 8;
+    if (free(lx, ly, tw, 14)) { placed.push([lx, ly, tw, 14]); g.fillStyle = red ? "#ff6a55" : k === "sun" ? "#ffd34d" : k === "comet" ? "#9fe8ff" : "#f2f0e6"; g.fillText(o[0], lx, y + 4); }
+    MAP.hits.push({ o, x, y, r: 13, alt: h.alt, az: h.az, good });
+  }
   for (const o of objs) {
     const [ra, dec] = [o[3] * 15, o[4]], p = P(ra, dec); if (!p || p[2] < 0) continue;
     const good = dark && p[2] >= minAltAt(p[3]);
@@ -1138,11 +1518,12 @@ function mapPick(x, y) {
   for (const h of MAP.hits) { const d = Math.hypot(h.x - x, h.y - y); if (d < h.r && d < bd) { bd = d; best = h; } }
   const pop = $("#mapPop");
   if (!best) { pop.hidden = true; return; }
-  const o = best.o, vis = visibility(o, NM);
-  pop.innerHTML = `<div class="obj">${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(label(o))}</small></div>
+  const o = best.o, vis = visibility(o, o.solar && o.solar.kind === "sun" ? dayModel() : NM);
+  pop.innerHTML = `<div class="obj">${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(o.solar ? solarSub(o) : label(o))}</small></div>
+    ${o.solar && o.solar.kind === "sun" ? `<div class="pill bad" style="margin-top:4px">${L("filtre solaire obligatoire", "solar filter required")}</div>` : ""}
     <div class="num" style="margin-top:4px">${L("hauteur", "altitude")} ${Math.round(best.alt)}° · azimut ${Math.round(best.az)}°</div>
     <div class="muted" style="font-size:13px">${vis.usable ? `${L("fenêtre", "window")} ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : L("pas de fenêtre utile ce soir", "no usable window tonight")}</div>
-    <button class="btn primary" type="button" data-open="${esc(o[0])}">${L("Ouvrir la fiche", "Open the target")}</button>`;
+    <button class="btn primary" type="button" data-open="${esc(oid(o))}">${L("Ouvrir la fiche", "Open the target")}</button>`;
   const wrap = $("#mapWrap"), w = wrap.clientWidth;
   pop.style.left = Math.min(Math.max(8, x + 12), w - 270) + "px"; pop.style.top = Math.max(8, y - 20) + "px"; pop.hidden = false;
 }
@@ -1170,6 +1551,350 @@ function mapPick(x, y) {
   $("#mapPop").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) { $("#mapPop").hidden = true; openTarget(b.dataset.open); } });
   window.addEventListener("resize", () => { if (currentView() === "carte") drawMap(); });
 })();
+
+// ---------------------------------------------------------------- alertes : calculs
+const RE_KM = 6378.137;
+// ---- éclipses
+function moonAltAt(t) { const d = new Date(t), q = AE.Equator(AE.Body.Moon, d, aeObs(), true, true); return AE.Horizon(d, aeObs(), q.ra, q.dec, "normal").altitude; }
+function sunAltAt(t) { const d = new Date(t), q = AE.Equator(AE.Body.Sun, d, aeObs(), true, true); return AE.Horizon(d, aeObs(), q.ra, q.dec, "normal").altitude; }
+function lunarEclipses(from, years) {
+  const out = []; let e = AE.SearchLunarEclipse(new Date(from));
+  const end = from + years * 365.25 * 864e5;
+  while (e.peak.date.getTime() < end) {
+    const pk = e.peak.date.getTime(), m = 60e3;
+    const c = { kind: e.kind, peak: pk, obsc: e.obscuration,
+      penBeg: pk - e.sd_penum * m, penEnd: pk + e.sd_penum * m,
+      parBeg: e.sd_partial ? pk - e.sd_partial * m : null, parEnd: e.sd_partial ? pk + e.sd_partial * m : null,
+      totBeg: e.sd_total ? pk - e.sd_total * m : null, totEnd: e.sd_total ? pk + e.sd_total * m : null };
+    // visible d'ici si la Lune est levée pendant la phase la plus marquée
+    const a = c.parBeg || c.penBeg, b = c.parEnd || c.penEnd;
+    let up = 0, upMax = -90, upT = null;
+    for (let t = a; t <= b; t += 5 * m) { const h = moonAltAt(t); if (h > 0) up++; if (h > upMax) { upMax = h; upT = t; } }
+    c.altPeak = moonAltAt(pk); c.visible = up > 0; c.altMax = upMax;
+    c.sunAtPeak = sunAltAt(pk);
+    if (c.visible) out.push(c);
+    e = AE.NextLunarEclipse(e.peak);
+  }
+  return out;
+}
+function solarEclipses(from, years) {
+  const out = []; let e = AE.SearchLocalSolarEclipse(new Date(from), aeObs());
+  const end = from + years * 365.25 * 864e5;
+  while (e.peak.time.date.getTime() < end) {
+    const c = { kind: e.kind, obsc: e.obscuration, peak: e.peak.time.date.getTime(), altPeak: e.peak.altitude,
+      beg: e.partial_begin.time.date.getTime(), begAlt: e.partial_begin.altitude, end: e.partial_end.time.date.getTime(), endAlt: e.partial_end.altitude,
+      totBeg: e.total_begin ? e.total_begin.time.date.getTime() : null, totEnd: e.total_end ? e.total_end.time.date.getTime() : null };
+    if (c.altPeak > 0 || c.begAlt > 0 || c.endAlt > 0) out.push(c);
+    e = AE.NextLocalSolarEclipse(e.peak.time, aeObs());
+  }
+  return out;
+}
+// ---- satellites (ISS, station chinoise Tiangong) avec SGP4
+const SATS = { ISS: { fr: "ISS", en: "ISS", mag: -1.8 }, CSS: { fr: "Tiangong", en: "Tiangong", mag: -0.8 } };
+function satLook(rec, t) {
+  const d = new Date(t), pv = satellite.propagate(rec, d);
+  if (!pv || !pv.position) return null;
+  const gm = satellite.gstime(d), ecf = satellite.eciToEcf(pv.position, gm);
+  const la = satellite.ecfToLookAngles({ latitude: S.lat * D2R, longitude: S.lon * D2R, height: 0.05 }, ecf);
+  return { el: la.elevation * R2D, az: norm360(la.azimuth * R2D), range: la.rangeSat, eci: pv.position };
+}
+function satSunlit(eci, t) {   // ombre cylindrique de la Terre
+  const s = AE.GeoVector(AE.Body.Sun, new Date(t), true), n = Math.hypot(s.x, s.y, s.z), ux = s.x / n, uy = s.y / n, uz = s.z / n;
+  const p = eci.x * ux + eci.y * uy + eci.z * uz;
+  if (p > 0) return true;
+  return Math.hypot(eci.x - p * ux, eci.y - p * uy, eci.z - p * uz) > RE_KM;
+}
+const obsSunAlt = t => { const jd = jdOf(t), sn = sunPos(jd); return altaz(sn.ra, sn.dec, jd).alt; };
+function satPasses(rec, from, days, info) {
+  const passes = [], step = 20e3, end = from + days * 864e5;
+  let prev = satLook(rec, from), t = from + step;
+  const elAt = x => { const l = satLook(rec, x); return l ? l.el : -90; };
+  const bisect = (a, b, up) => { for (let k = 0; k < 20; k++) { const m = (a + b) / 2; ((elAt(m) > 0) === up) ? (b = m) : (a = m); } return (a + b) / 2; };
+  let rise = prev && prev.el > 0 ? from : null;
+  for (; t <= end; t += step) {
+    const cur = satLook(rec, t); if (!cur || !prev) { prev = cur; continue; }
+    if (prev.el <= 0 && cur.el > 0) rise = bisect(t - step, t, true);
+    if (prev.el > 0 && cur.el <= 0 && rise !== null) { passes.push(describePass(rec, rise, bisect(t - step, t, false), info)); rise = null; }
+    prev = cur;
+  }
+  return passes.filter(p => p.maxEl >= 10);
+}
+function describePass(rec, rise, set, info) {
+  const p = { rise, set, maxEl: -90, maxT: null, maxAz: 0, visBeg: null, visEnd: null, visMaxEl: -90, minRange: 1e9, riseAz: satLook(rec, rise).az, setAz: satLook(rec, set).az };
+  // un passage dure quelques minutes : la nuit (Soleil sous −6°) se juge une fois, au milieu
+  const darkAt0 = obsSunAlt((rise + set) / 2) < -6;
+  for (let t = rise; t <= set; t += 5e3) {
+    const l = satLook(rec, t); if (!l) continue;
+    if (l.el > p.maxEl) { p.maxEl = l.el; p.maxT = t; p.maxAz = l.az; }
+    if (l.el >= 10 && darkAt0 && satSunlit(l.eci, t)) {
+      if (p.visBeg === null) { p.visBeg = t; p.visBegAz = l.az; } p.visEnd = t; p.visEndAz = l.az;
+      if (l.el > p.visMaxEl) p.visMaxEl = l.el; if (l.range < p.minRange) p.minRange = l.range;
+    }
+  }
+  p.visible = p.visBeg !== null;
+  if (p.visible) p.mag = info.mag + 5 * Math.log10(p.minRange / 1000);
+  return p;
+}
+// transits devant le Soleil et la Lune : séparation minimale vue d'ici
+function bodyAltAz(body, t) { const d = new Date(t), q = AE.Equator(body, d, aeObs(), true, true), h = AE.Horizon(d, aeObs(), q.ra, q.dec, null); return { alt: h.altitude, az: h.azimuth, dist: q.dist }; }
+function altazSep(a1, z1, a2, z2) { return sep(z1, a1, z2, a2); }   // même formule que pour RA/DEC
+function satTransits(rec, passes, info) {
+  const out = [];
+  for (const p of passes) for (const [bk, body, radiusKm] of [["sun", AE.Body.Sun, 695700], ["moon", AE.Body.Moon, 1737.4]]) {
+    const b0 = bodyAltAz(body, p.maxT); if (b0.alt < 2) continue;
+    const f = t => { const l = satLook(rec, t), b = bodyAltAz(body, t); return l ? altazSep(l.el, l.az, b.alt, b.az) : 180; };
+    // approche grossière (corps supposé fixe pendant le passage), puis fine autour du minimum
+    let bestT = null, best = 180;
+    for (let t = p.rise; t <= p.set; t += 10e3) { const l = satLook(rec, t); if (!l) continue; const v = altazSep(l.el, l.az, b0.alt, b0.az); if (v < best) { best = v; bestT = t; } }
+    if (best > 8) continue;
+    best = 180; const c0 = bestT;
+    for (let t = Math.max(p.rise, c0 - 90e3); t <= Math.min(p.set, c0 + 90e3); t += 2e3) { const v = f(t); if (v < best) { best = v; bestT = t; } }
+    if (best > 3) continue;
+    let a = bestT - 2e3, c = bestT + 2e3;
+    for (let k = 0; k < 40; k++) { const m1 = a + (c - a) / 3, m2 = c - (c - a) / 3; f(m1) < f(m2) ? (c = m2) : (a = m1); }
+    const tm = (a + c) / 2, l = satLook(rec, tm), b = bodyAltAz(body, tm), dsep = f(tm);
+    const l2 = satLook(rec, tm + 1000), speed = altazSep(l.el, l.az, l2.el, l2.az);   // °/s
+    const rBody = Math.atan(radiusKm / (b.dist * AU_KM)) * R2D;
+    const offKm = Math.max(0, dsep - rBody) * D2R * l.range / Math.max(0.2, Math.sin(Math.max(5, l.el) * D2R));
+    const t0 = { body: bk, t: tm, sep: dsep, rBody, el: l.el, az: l.az, range: l.range, speed, offKm, here: dsep < rBody,
+      dur: dsep < rBody ? 2 * Math.sqrt(rBody * rBody - dsep * dsep) / speed : 0, sat: info, bodyAlt: b.alt };
+    if (t0.here || offKm <= 40) out.push(t0);
+  }
+  return out;
+}
+function satReport(from, days) {
+  const res = { sats: [], transits: [], passes: [], ageDays: null };
+  const tles = SPACE && SPACE.tle ? SPACE.tle : null; if (!tles) return res;
+  for (const k of Object.keys(SATS)) {
+    const tle = tles[k]; if (!Array.isArray(tle) || tle.length < 2) continue;
+    let rec; try { rec = satellite.twoline2satrec(tle[0], tle[1]); } catch (e) { continue; }
+    const info = Object.assign({ key: k, name: EN ? SATS[k].en : SATS[k].fr }, SATS[k]);
+    const epoch = (rec.jdsatepoch + (rec.jdsatepochF || 0) - 2440587.5) * 864e5;
+    const age = (from - epoch) / 864e5; res.ageDays = res.ageDays === null ? age : Math.max(res.ageDays, age);
+    const ps = satPasses(rec, from, days, info);
+    ps.forEach(p => p.sat = info);
+    res.passes.push(...ps.filter(p => p.visible));
+    res.transits.push(...satTransits(rec, ps, info));
+    res.sats.push(info);
+  }
+  res.passes.sort((a, b) => a.visBeg - b.visBeg); res.transits.sort((a, b) => a.t - b.t);
+  return res;
+}
+// ---- planètes : oppositions, élongations, rapprochements, transits
+// nom, « de … », nom anglais, RA, DEC (J2000)
+const BRIGHT_STARS = [["Aldébaran", "d'Aldébaran", "Aldebaran", 68.98, 16.51], ["Régulus", "de Régulus", "Regulus", 152.09, 11.97], ["Spica", "de Spica", "Spica", 201.30, -11.16],
+  ["Antarès", "d'Antarès", "Antares", 247.35, -26.43], ["les Pléiades", "des Pléiades", "the Pleiades", 56.75, 24.12]];
+function planetEvents(from, days) {
+  const ev = [], end = from + days * 864e5, D = x => new Date(x);
+  for (const [k, body, fr, en] of SOLAR_DEF.filter(x => ["mars", "jupiter", "saturn", "uranus", "neptune"].includes(x[0]))) {
+    const t = AE.SearchRelativeLongitude(body, 0, D(from)).date.getTime();
+    if (t < end) { const il = AE.Illumination(body, D(t)), q = AE.Equator(body, D(t), aeObs(), true, true);
+      const radius = SOLAR_DEF.find(x => x[0] === k)[5], diam = 2 * Math.atan(radius / (q.dist * AU_KM)) * R2D * 3600;
+      ev.push({ t, kind: "opp", key: k, text: L(`${fr} à l'opposition : au plus près et visible toute la nuit (magnitude ${fmt(il.mag, 1)}, ${fmt(diam, 1)}″)`, `${en} at opposition: closest and visible all night (magnitude ${fmt(il.mag, 1)}, ${fmt(diam, 1)}″)`) }); }
+  }
+  for (const [k, body, fr, en] of SOLAR_DEF.filter(x => x[0] === "mercury" || x[0] === "venus")) {
+    let s = D(from);
+    for (let i = 0; i < 8; i++) { const e = AE.SearchMaxElongation(body, s); const t = e.time.date.getTime(); if (t > end) break;
+      ev.push({ t, kind: "elong", key: k, text: L(`${fr} à sa plus grande élongation ${e.visibility === "morning" ? "du matin (à l'est avant l'aube)" : "du soir (à l'ouest après le coucher du Soleil)"} : ${fmt(e.elongation, 1)}° du Soleil`, `${en} at greatest ${e.visibility === "morning" ? "morning elongation (east before dawn)" : "evening elongation (west after sunset)"}: ${fmt(e.elongation, 1)}° from the Sun`) });
+      s = D(t + 10 * 864e5); }
+    const tr = AE.SearchTransit(body, D(from)); const tt = tr.peak.date.getTime();
+    if (tt < from + 15 * 365.25 * 864e5) { const alt = sunAltAt(tt);
+      ev.push({ t: tt, kind: "transit", key: k, far: true, text: L(`Transit de ${fr} devant le Soleil (${alt > 0 ? `visible d'ici, Soleil à ${Math.round(alt)}° au maximum` : "non visible d'ici : le Soleil sera couché"})`, `Transit of ${en} across the Sun (${alt > 0 ? `visible from here, Sun at ${Math.round(alt)}° at mid-transit` : "not visible from here: the Sun will be down"})`) }); }
+  }
+  // rapprochements entre planètes brillantes (< 2°), pas d'un jour
+  const pl = SOLAR_DEF.filter(x => ["mercury", "venus", "mars", "jupiter", "saturn"].includes(x[0]));
+  const pos = pl.map(() => []);
+  for (let t = from, i = 0; t <= end; t += 864e5, i++) pl.forEach((p, j) => { const q = AE.Equator(p[1], D(t), aeObs(), true, true); pos[j].push([q.ra * 15, q.dec]); });
+  for (let a = 0; a < pl.length; a++) for (let b = a + 1; b < pl.length; b++) {
+    const sp = pos[a].map((p, i) => sep(p[0], p[1], pos[b][i][0], pos[b][i][1]));
+    for (let i = 1; i < sp.length - 1; i++) if (sp[i] < 2 && sp[i] <= sp[i - 1] && sp[i] < sp[i + 1]) {
+      const t = from + i * 864e5, el = AE.AngleFromSun(pl[a][1], D(t));
+      if (el < 12) continue;   // trop près du Soleil pour être vu
+      ev.push({ t, kind: "conj", key: pl[a][0], text: L(`${pl[a][2]} et ${pl[b][2]} à ${fmt(sp[i], 1)}° l'une de l'autre (${Math.round(el)}° du Soleil)`, `${pl[a][3]} and ${pl[b][3]} ${fmt(sp[i], 1)}° apart (${Math.round(el)}° from the Sun)`) });
+    }
+  }
+  return ev;
+}
+function moonEvents(from, days) {   // la Lune près des planètes et des étoiles brillantes, visible d'ici
+  const ev = [], step = 3600e3, n = Math.round(days * 24), D = x => new Date(x);
+  const targets = SOLAR_DEF.filter(x => ["venus", "mars", "jupiter", "saturn", "mercury"].includes(x[0])).map(x => ({ fr: x[2], de: "de " + x[2], en: x[3], body: x[1] }))
+    .concat(BRIGHT_STARS.map(([fr, de, en, ra, dec]) => ({ fr, de, en, ra, dec })));
+  const moon = []; for (let i = 0; i <= n; i++) { const q = AE.Equator(AE.Body.Moon, D(from + i * step), aeObs(), true, true); moon.push([q.ra * 15, q.dec]); }
+  for (const tg of targets) {
+    const sp = [];
+    for (let i = 0; i <= n; i++) { let ra = tg.ra, dec = tg.dec; const t = from + i * step;
+      if (tg.body) { if (i % 6 === 0 || !tg._q) { const q = AE.Equator(tg.body, D(t), aeObs(), true, true); tg._q = [q.ra * 15, q.dec]; } [ra, dec] = tg._q; }
+      else [ra, dec] = precess(ra, dec, jdOf(t));
+      sp.push(sep(moon[i][0], moon[i][1], ra, dec)); }
+    for (let i = 1; i < n; i++) if (sp[i] < 2.5 && sp[i] <= sp[i - 1] && sp[i] < sp[i + 1]) {
+      // le meilleur moment visible d'ici dans les ±4 h : Lune levée, ciel sombre
+      let vis = null;
+      for (let k = Math.max(0, i - 4); k <= Math.min(n, i + 4); k++) { const t = from + k * step, h = moonAltAt(t);
+        if (h > 8 && obsSunAlt(t) < -6 && (!vis || sp[k] < vis.s)) vis = { t, s: sp[k], h }; }
+      if (!vis) continue;
+      const occ = vis.s < 0.27;
+      ev.push({ t: vis.t, kind: occ ? "occ" : "moon", text: L(`${occ ? "Occultation possible : la Lune passe devant " + tg.fr : "La Lune à " + fmt(vis.s, 1) + "° " + tg.de} (Lune à ${Math.round(vis.h)}° de hauteur)`, `${occ ? "Possible occultation: the Moon passes in front of" : "The Moon " + fmt(vis.s, 1) + "° from"} ${tg.en} (Moon ${Math.round(vis.h)}° high)`) });
+    }
+  }
+  return ev;
+}
+// ---- étoiles filantes (calendrier de l'IMO : longitude solaire du maximum et taux horaire zénithal)
+const SHOWERS = [["Quadrantides", "Quadrantids", 283.15, 80], ["Lyrides", "Lyrids", 32.32, 18], ["Êta Aquarides", "Eta Aquariids", 45.5, 50, true],
+  ["Delta Aquarides", "Delta Aquariids", 127, 25, true], ["Perséides", "Perseids", 140.0, 100], ["Draconides", "Draconids", 195.4, 10],
+  ["Orionides", "Orionids", 208, 20], ["Léonides", "Leonids", 235.27, 15], ["Géminides", "Geminids", 262.2, 150], ["Ursides", "Ursids", 270.7, 10]];
+function meteorShowers(from, days) {
+  const out = [];
+  for (const [fr, en, lon, zhr, low] of SHOWERS) {
+    const t = AE.SearchSunLongitude(lon, new Date(from - 864e5), days + 2); if (!t) continue;
+    const pk = t.date.getTime(), moon = AE.Illumination(AE.Body.Moon, t.date).phase_fraction;
+    out.push({ t: pk, kind: "meteor", name: EN ? en : fr, zhr, moon, low,
+      text: L(`Maximum des ${fr} : jusqu'à ${zhr} météores par heure sous un ciel parfait${low ? " (radiant bas depuis la France)" : ""}, Lune éclairée à ${pc(moon * 100)}`, `${en} peak: up to ${zhr} meteors per hour under a perfect sky${low ? " (low radiant from France)" : ""}, Moon ${pc(moon * 100)} lit`) });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}
+
+// ---- onglet Alertes
+const AL = { key: "", res: null, busy: false, waiters: [] };
+const alertsKey = () => [S.lat, S.lon, SPACE ? SPACE.updated : "", new Date().toDateString(), new Date().getHours()].join("|");
+function computeAlerts() {
+  const now = Date.now();
+  return { now, lunar: lunarEclipses(now - 864e5, 6), solar: solarEclipses(now - 864e5, 15), sat: satReport(now, 10),
+    planets: planetEvents(now, 365), moon: moonEvents(now, 60), showers: meteorShowers(now, 366) };
+}
+function ensureAlerts(cb) {
+  if (AL.res && AL.key === alertsKey()) { cb(AL.res); return; }
+  AL.waiters.push(cb); if (AL.busy) return;
+  AL.busy = true;
+  setTimeout(() => {   // laisse la page s'afficher avant le calcul (environ une seconde)
+    try { AL.res = computeAlerts(); AL.key = alertsKey(); } catch (e) { console.error(e); AL.res = null; }
+    AL.busy = false; const w = AL.waiters.splice(0); w.forEach(f => f(AL.res)); updateAlertBadge();
+  }, 60);
+}
+const dirOf = az => DIRS[Math.round(norm360(az) / 22.5) % 16];
+const whenFull = (t, year) => new Date(t).toLocaleString(LOCALE, { weekday: "short", day: "numeric", month: "short", ...(year ? { year: "numeric" } : {}), hour: "2-digit", minute: "2-digit" });
+const whenDay = (t, year) => new Date(t).toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short", ...(year ? { year: "numeric" } : {}) });
+function countdown(t) {
+  const d = (t - Date.now()) / 864e5;
+  if (d < 0) return L("en cours ou passé", "now or past");
+  if (d < 1) return L(`dans ${Math.max(1, Math.round(d * 24))} h`, `in ${Math.max(1, Math.round(d * 24))} h`);
+  if (d < 60) return L(`dans ${Math.round(d)} j`, `in ${Math.round(d)} d`);
+  if (d < 730) return L(`dans ${Math.round(d / 30.4)} mois`, `in ${Math.round(d / 30.4)} months`);
+  return L(`dans ${Math.round(d / 365.25)} ans`, `in ${Math.round(d / 365.25)} years`);
+}
+const LUNAR_KIND = k => ({ total: L("totale", "total"), partial: L("partielle", "partial"), penumbral: L("par la pénombre (à peine visible)", "penumbral (barely visible)") }[k] || k);
+const SOLAR_KIND = k => ({ total: L("totale", "total"), annular: L("annulaire", "annular"), partial: L("partielle", "partial") }[k] || k);
+function kpInfo() {
+  const kp = SPACE && Array.isArray(SPACE.kp) ? SPACE.kp : [];
+  const now = Date.now(), soon = kp.map(([t, v]) => [Date.parse(String(t).replace(" ", "T") + (String(t).endsWith("Z") ? "" : "Z")), Number(v)])
+    .filter(([t, v]) => isFinite(t) && isFinite(v) && t > now - 3 * 3.6e6 && t < now + 3 * 864e5);
+  if (!soon.length) return null;
+  const mx = soon.reduce((a, b) => b[1] > a[1] ? b : a);
+  return { max: mx[1], t: mx[0] };
+}
+function auroraText(k) {
+  if (k.max >= 8) return L("orage géomagnétique majeur : aurore possible sur l'horizon nord, à photographier (pose de 10 à 20 s, grand champ).", "major geomagnetic storm: aurora possible low in the north, to photograph (10 to 20 s exposures, wide field).");
+  if (k.max >= 7) return L("orage géomagnétique fort : aurore peu probable depuis la Provence, mais à surveiller.", "strong geomagnetic storm: aurora unlikely from Provence, but worth watching.");
+  return L("activité géomagnétique calme à modérée : pas d'aurore depuis le sud de la France.", "quiet to moderate geomagnetic activity: no aurora from southern France.");
+}
+function highlights(R) {
+  const h = [], now = R.now, within = (t, d) => t >= now - 3 * 3.6e6 && t <= now + d * 864e5;
+  for (const x of R.sat.transits) h.push({ t: x.t, strong: x.here || x.offKm <= 25, text: transitText(x) });
+  for (const p of R.sat.passes.filter(p => within(p.visBeg, 2) && p.visMaxEl >= 40).slice(0, 3))
+    h.push({ t: p.visBeg, text: L(`Passage brillant de ${p.sat.name} : ${Math.round(p.visMaxEl)}° de hauteur, magnitude ${fmt(p.mag, 1)}`, `Bright ${p.sat.name} pass: ${Math.round(p.visMaxEl)}° high, magnitude ${fmt(p.mag, 1)}`) });
+  for (const e of R.lunar) if (within(e.peak, 60)) h.push({ t: e.peak, strong: within(e.peak, 30), text: L(`Éclipse de Lune ${LUNAR_KIND(e.kind)}`, `${LUNAR_KIND(e.kind)} lunar eclipse`) });
+  for (const e of R.solar) if (within(e.peak, 60)) h.push({ t: e.peak, strong: within(e.peak, 30), text: L(`Éclipse de Soleil ${SOLAR_KIND(e.kind)} (${pc(e.obsc * 100)} du Soleil caché) : filtre solaire obligatoire`, `${SOLAR_KIND(e.kind)} solar eclipse (${pc(e.obsc * 100)} of the Sun covered): solar filter required`) });
+  for (const e of R.planets) if (within(e.t, 14)) h.push({ t: e.t, day: e.kind === "conj", text: e.text });
+  for (const e of R.moon) if (within(e.t, 7)) h.push({ t: e.t, text: e.text });
+  for (const e of R.showers) if (within(e.t, 10)) h.push({ t: e.t, text: e.text });
+  const k = kpInfo(); if (k && k.max >= 7) h.push({ t: k.t, strong: k.max >= 8, text: L(`Indice Kp ${fmt(k.max, 0)} prévu : `, `Kp index ${fmt(k.max, 0)} forecast: `) + auroraText(k) });
+  for (const o of SOLAR.filter(o => o.solar.kind === "comet" && o[7] < 7)) h.push({ t: now, now: true, strong: o[7] < 5, open: oid(o), text: L(`Comète ${o[0]} à la magnitude ${fmt(o[7], 1)}`, `Comet ${o[0]} at magnitude ${fmt(o[7], 1)}`) });
+  return h.sort((a, b) => a.t - b.t);
+}
+function transitText(x) {
+  const body = x.body === "sun" ? L("le Soleil", "the Sun") : L("la Lune", "the Moon");
+  return x.here ? L(`Transit de ${x.sat.name} devant ${body}, visible d'ici (${fmt(x.dur, 1)} s)`, `${x.sat.name} transits ${body}, visible from here (${fmt(x.dur, 1)} s)`)
+    : L(`Transit de ${x.sat.name} devant ${body} à environ ${Math.round(x.offKm)} km d'ici`, `${x.sat.name} transits ${body} about ${Math.round(x.offKm)} km from here`);
+}
+function updateAlertBadge() {
+  const b = $("#alertBadge"); if (!b || !AL.res) return;
+  const n = highlights(AL.res).filter(x => x.strong).length;
+  b.hidden = !n; b.textContent = n;
+}
+function renderAlerts() {
+  const pane = $("#alertsPane");
+  if (!AL.res || AL.key !== alertsKey()) pane.innerHTML = `<p class="note">${L("Calcul des éclipses, des passages de l'ISS et des événements de l'année…", "Computing eclipses, ISS passes and this year's events…")}</p>`;
+  ensureAlerts(R => { if (currentView() === "alertes") drawAlerts(R); });
+}
+function drawAlerts(R) {
+  const pane = $("#alertsPane");
+  if (!R) { pane.innerHTML = `<p class="note">${L("Le calcul des alertes a échoué.", "Computing the alerts failed.")}</p>`; return; }
+  const hl = highlights(R), tle = SPACE && SPACE.tle, k = kpInfo(), ssn = SPACE && SPACE.ssn && SPACE.ssn.value != null ? SPACE.ssn : null;
+  const comets = SOLAR.filter(o => o.solar.kind === "comet").sort((a, b) => a[7] - b[7]);
+  const card = (title, body, id) => `<div class="card alert-card"${id ? ` id="${id}"` : ""}><h3>${title}</h3>${body}</div>`;
+  const tbl = (head, rows, empty) => rows.length ? `<div class="tablewrap" style="margin-top:8px"><table><thead><tr>${head.map(x => `<th${x[1] ? ' class="num"' : ""}>${x[0]}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>` : `<p class="muted">${empty}</p>`;
+  const lunarRows = R.lunar.map(e => `<tr><td>${whenDay(e.peak, true)}<br><span class="muted">${countdown(e.peak)}</span></td><td><strong>${LUNAR_KIND(e.kind)}</strong>${e.kind !== "penumbral" ? `<br><span class="muted">${pc(e.obsc * 100)} ${L("du disque dans l'ombre", "of the disc in the umbra")}</span>` : ""}</td>
+      <td class="num">${hhmm(e.peak)}</td><td class="num">${e.totBeg ? `${hhmm(e.totBeg)} – ${hhmm(e.totEnd)}` : "—"}</td><td class="num">${e.parBeg ? `${hhmm(e.parBeg)} – ${hhmm(e.parEnd)}` : `${hhmm(e.penBeg)} – ${hhmm(e.penEnd)}`}</td>
+      <td>${e.altPeak > 0 ? L(`Lune à ${Math.round(e.altPeak)}°`, `Moon at ${Math.round(e.altPeak)}°`) : L(`en partie seulement : Lune sous l'horizon au maximum`, `only partly: Moon below the horizon at maximum`)}${e.sunAtPeak > -6 ? L(" · ciel clair", " · bright sky") : ""}</td></tr>`);
+  const solarRows = R.solar.map(e => `<tr><td>${whenDay(e.peak, true)}<br><span class="muted">${countdown(e.peak)}</span></td><td><strong>${SOLAR_KIND(e.kind)}</strong><br><span class="muted">${L(`${pc(e.obsc * 100)} du Soleil caché`, `${pc(e.obsc * 100)} of the Sun covered`)}</span></td>
+      <td class="num">${hhmm(e.peak)}</td><td class="num">${hhmm(e.beg)} – ${hhmm(e.end)}</td>
+      <td>${e.altPeak > 0 ? L(`Soleil à ${Math.round(e.altPeak)}° au maximum`, `Sun at ${Math.round(e.altPeak)}° at maximum`) : L("Soleil couché au maximum : seul le début se voit", "Sun down at maximum: only the start is visible")}${e.begAlt < 0 ? L(" · commence avant le lever du Soleil", " · starts before sunrise") : ""}${e.endAlt < 0 && e.altPeak > 0 ? L(" · le Soleil se couche éclipsé", " · the Sun sets eclipsed") : ""}</td></tr>`);
+  const trRows = R.sat.transits.map(x => `<tr><td>${whenFull(x.t)}<br><span class="muted">${countdown(x.t)}</span></td><td>${esc(x.sat.name)} → ${x.body === "sun" ? L("☀ Soleil", "☀ Sun") : L("Lune", "Moon")}</td>
+      <td>${x.here ? `<span class="pill good">${L("visible d'ici", "visible from here")}</span>` : `<span class="pill warn">${L(`à ≈ ${Math.round(x.offKm)} km`, `≈ ${Math.round(x.offKm)} km away`)}</span>`}</td>
+      <td class="num">${x.here ? `${fmt(x.dur, 2)} s` : "—"}</td><td class="num">${Math.round(x.el)}° ${dirOf(x.az)}</td><td class="num">${Math.round(x.range)} km</td></tr>`);
+  const passRows = R.sat.passes.slice(0, 25).map(p => `<tr><td>${whenFull(p.visBeg)}</td><td>${esc(p.sat.name)}</td><td class="num">${hhmm(p.visBeg)} → ${hhmm(p.visEnd)}</td>
+      <td class="num">${Math.round(p.visMaxEl)}°</td><td>${dirOf(p.visBegAz)} → ${dirOf(p.visEndAz)}</td><td class="num">${fmt(p.mag, 1)}</td></tr>`);
+  const evRow = e => `<tr><td>${whenDay(e.t, e.far)}<br><span class="muted">${countdown(e.t)}</span></td><td class="num">${e.kind === "conj" ? "—" : hhmm(e.t)}</td><td>${esc(e.text)}</td></tr>`;
+  const planetRows = R.planets.slice().sort((a, b) => a.t - b.t).map(evRow), moonRows = R.moon.slice().sort((a, b) => a.t - b.t).map(evRow);
+  const showerRows = R.showers.map(e => `<tr><td>${esc(e.name)}</td><td>${whenFull(e.t)}<br><span class="muted">${countdown(e.t)}</span></td><td class="num">${e.zhr}</td>
+      <td><span class="pill ${e.moon < 0.3 ? "good" : e.moon < 0.65 ? "warn" : "bad"}">${L("Lune", "Moon")} ${pc(e.moon * 100)}</span>${e.low ? `<br><span class="muted">${L("radiant bas", "low radiant")}</span>` : ""}</td></tr>`);
+  const noData = `<p class="note">${L("Ces données viennent du fichier <span class=\"mono\">space.json</span> que le serveur met à jour (script <span class=\"mono\">tools/space_sync.py</span>, voir le README). Il est absent ici.", "This data comes from the <span class=\"mono\">space.json</span> file updated by the server (<span class=\"mono\">tools/space_sync.py</span> script, see the README). It is missing here.")}</p>`;
+  pane.innerHTML = `
+    ${card(L("À ne pas manquer", "Don't miss"), hl.length ? `<ul class="hl">${hl.slice(0, 12).map(x => `<li class="${x.strong ? "strong" : ""}">${x.now ? `<span class="muted">${L("en ce moment", "right now")}</span>` : `<span class="num">${x.day ? whenDay(x.t) : whenFull(x.t)}</span> <span class="muted">(${countdown(x.t)})</span>`}<br>${x.open ? `<a href="#cible" data-open="${esc(x.open)}">${esc(x.text)}</a>` : esc(x.text)}</li>`).join("")}</ul>` : `<p class="muted">${L("Rien de marquant dans les prochains jours.", "Nothing notable in the coming days.")}</p>`)}
+    ${card(L("Éclipses visibles d'ici", "Eclipses visible from here"), `
+      <h4>${L("Lune", "Moon")}</h4>${tbl([[L("Date", "Date")], [L("Type", "Type")], [L("Maximum", "Maximum"), 1], [L("Totalité", "Totality"), 1], [L("Phase partielle", "Partial phase"), 1], [L("Chez vous", "From here")]], lunarRows, L("Aucune dans les six ans.", "None in the next six years."))}
+      <h4 style="margin-top:14px">${L("Soleil", "Sun")}</h4>${tbl([[L("Date", "Date")], [L("Type", "Type")], [L("Maximum", "Maximum"), 1], [L("Début – fin", "Start – end"), 1], [L("Chez vous", "From here")]], solarRows, L("Aucune dans les quinze ans.", "None in the next fifteen years."))}
+      <p class="note">${L("Heures locales pour", "Local times for")} ${esc(S.siteName)}. ${L("Pour une éclipse de Soleil, même partielle, filtre solaire obligatoire sur chaque instrument et lunettes certifiées ISO 12312-2 pour l'œil. Cartes détaillées :", "For a solar eclipse, even partial, a solar filter is required on every instrument and ISO 12312-2 certified glasses for the eye. Detailed maps:")} <a href="https://eclipse.gsfc.nasa.gov/eclipse.html" target="_blank" rel="noopener">NASA</a>.</p>`)}
+    ${card(L("ISS et station chinoise Tiangong", "ISS and the Tiangong space station"), tle ? `
+      <h4>${L("Transits devant le Soleil et la Lune (10 jours)", "Transits across the Sun and Moon (10 days)")}</h4>
+      ${tbl([[L("Quand", "When")], [L("Quoi", "What")], [L("Où", "Where")], [L("Durée", "Duration"), 1], [L("Hauteur", "Altitude"), 1], [L("Distance", "Range"), 1]], trRows, L("Aucun transit à moins de 40 km d'ici dans les dix jours.", "No transit within 40 km of here in the next ten days."))}
+      <p class="note">${L("La bande où le transit se voit fait 5 à 15 km de large : à quelques kilomètres près, il faut se déplacer. La distance est un ordre de grandeur ; l'heure se confirme la veille sur", "The strip where a transit is visible is 5 to 15 km wide: being a few kilometres off means moving. The distance is an order of magnitude; confirm the time the day before on")} <a href="https://transit-finder.com" target="_blank" rel="noopener">transit-finder.com</a>. ${L("Pour un transit devant le Soleil : filtre solaire, et rafale ou vidéo lancée 5 s avant.", "For a solar transit: solar filter, and a burst or video started 5 s early.")}</p>
+      <h4 style="margin-top:14px">${L("Passages visibles à l'œil nu (10 jours)", "Naked-eye passes (10 days)")}</h4>
+      ${tbl([[L("Date", "Date")], [L("Station", "Station")], [L("Visible", "Visible"), 1], [L("Hauteur maxi", "Max altitude"), 1], [L("Direction", "Direction")], [L("Mag.", "Mag."), 1]], passRows, L("Aucun passage visible : la station passe de jour ou dans l'ombre de la Terre.", "No visible pass: the station passes in daylight or in Earth's shadow."))}
+      <p class="note">${L(`Orbites (TLE) du ${new Date(Date.now() - R.sat.ageDays * 864e5).toLocaleDateString(LOCALE)}`, `Orbits (TLE) from ${new Date(Date.now() - R.sat.ageDays * 864e5).toLocaleDateString(LOCALE)}`)}${R.sat.ageDays > 4 ? L(" : trop anciennes, les heures peuvent être fausses de plusieurs minutes.", ": too old, times may be off by several minutes.") : L(", précises à quelques secondes.", ", accurate to a few seconds.")} ${L("Source : CelesTrak.", "Source: CelesTrak.")}</p>` : noData)}
+    ${card(L("Soleil : taches et aurores", "Sun: spots and aurorae"), `
+      <div class="sdo"><img id="sdoImg" src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_HMIIF.jpg" alt="${L("Disque solaire en lumière visible, dernière image du satellite SDO", "Solar disc in visible light, latest image from the SDO satellite")}" loading="lazy" width="512" height="512">
+      <div>${ssn ? `<p>${L("Nombre de taches (Wolf) du", "Sunspot number for")} ${new Date(ssn.date + "T12:00").toLocaleDateString(LOCALE)}${COLON}<strong class="num" style="font-size:22px">${ssn.value}</strong></p><p class="muted">${ssn.value > 120 ? L("Soleil très actif : beaucoup de taches, belle cible pour le Dwarf avec son filtre solaire.", "Very active Sun: plenty of spots, a fine target for the Dwarf with its solar filter.") : ssn.value > 40 ? L("Activité moyenne : quelques groupes de taches.", "Moderate activity: a few spot groups.") : L("Soleil calme : peu ou pas de taches.", "Quiet Sun: few or no spots.")}</p>` : (SPACE ? "" : noData)}
+      ${k ? `<p>${L("Indice Kp maximal prévu sur 3 jours", "Maximum Kp index forecast over 3 days")}${COLON}<strong class="num">${fmt(k.max, 1)}</strong> (${whenFull(k.t)})<br><span class="muted">${auroraText(k)}</span></p>` : ""}
+      <p class="note">${L("Image SDO/HMI (NASA), mise à jour toutes les quinze minutes. Taches : SWPC (NOAA) ou SILSO (Observatoire royal de Belgique). Kp : SWPC.", "SDO/HMI image (NASA), updated every fifteen minutes. Spots: SWPC (NOAA) or SILSO (Royal Observatory of Belgium). Kp: SWPC.")} <a href="#cible" data-open="sun">${L("Fiche du Soleil", "Sun page")}</a></p></div></div>`)}
+    ${card(L("Planètes : les rendez-vous de l'année", "Planets: this year's highlights"), tbl([[L("Date", "Date")], [L("Heure", "Time"), 1], [L("Événement", "Event")]], planetRows, "—"))}
+    ${card(L("La Lune près des planètes et des étoiles (60 jours)", "The Moon near planets and stars (60 days)"), tbl([[L("Date", "Date")], [L("Heure", "Time"), 1], [L("Événement", "Event")]], moonRows, L("Aucun rapprochement serré visible d'ici.", "No close approach visible from here.")))}
+    ${card(L("Étoiles filantes", "Meteor showers"), tbl([[L("Essaim", "Shower")], [L("Maximum", "Peak")], [L("Taux maxi/h", "Max rate/h"), 1], [L("Lune", "Moon")]], showerRows, "—") + `<p class="note">${L("Le taux réel est bien plus bas sous un ciel de Bortle 5 et avec la Lune. Pour la photo : grand angle (Dwarf WIDE ou Canon), poses de 20 à 30 s en continu toute la nuit.", "The real rate is much lower under a Bortle 5 sky and with the Moon. For photos: wide angle (Dwarf WIDE or Canon), continuous 20 to 30 s exposures all night.")}</p>`)}
+    ${card(L("Comètes", "Comets"), comets.length ? tbl([[L("Comète", "Comet")], [L("Mag.", "Mag."), 1], [L("Distance", "Distance"), 1]], comets.map(o => `<tr class="click" data-id="${esc(oid(o))}" tabindex="0"><td>${esc(o[0])}</td><td class="num">${fmt(o[7], 1)}</td><td class="num">${fmt(o.facts.dist, 2)} ${L("UA", "AU")}</td></tr>`), "") + `<p class="note">${L("Comètes plus brillantes que la magnitude 13 d'après les orbites du Minor Planet Center ; cliquez pour la fiche.", "Comets brighter than magnitude 13 from Minor Planet Center orbits; click for the target page.")}</p>` : (SPACE && SPACE.comets ? `<p class="muted">${L("Aucune comète plus brillante que la magnitude 13 en ce moment.", "No comet brighter than magnitude 13 at the moment.")}</p>` : noData))}`;
+  const im = $("#sdoImg");
+  if (im) im.addEventListener("error", () => { im.replaceWith(Object.assign(document.createElement("p"), { className: "muted", textContent: L("Image de SDO indisponible pour l'instant.", "SDO image unavailable for now.") })); });
+}
+// export calendrier (.ics) : les rappels se déclenchent sur le téléphone
+function icsText(R) {
+  const z = t => new Date(t).toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const escI = s => String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const fold = line => { const out = []; let cur = ""; for (const ch of line) { if (new TextEncoder().encode(cur + ch).length > 74) { out.push(cur); cur = " " + ch; } else cur += ch; } out.push(cur); return out.join("\r\n"); };
+  const ev = [];
+  const add = (uid, t0, t1, title, desc, alarms) => ev.push(["BEGIN:VEVENT", `UID:${uid}@astroplan`, `DTSTAMP:${z(Date.now())}`, `DTSTART:${z(t0)}`, `DTEND:${z(t1 || t0 + 15 * 60e3)}`, `SUMMARY:${escI(title)}`, `DESCRIPTION:${escI(desc || "")}`,
+    ...alarms.flatMap(a => ["BEGIN:VALARM", "ACTION:DISPLAY", `TRIGGER:${a}`, `DESCRIPTION:${escI(title)}`, "END:VALARM"]), "END:VEVENT"]);
+  for (const e of R.lunar) add(`lune-${e.peak}`, e.parBeg || e.penBeg, e.parEnd || e.penEnd, L(`Éclipse de Lune ${LUNAR_KIND(e.kind)}`, `${LUNAR_KIND(e.kind)} lunar eclipse`), L(`Maximum ${hhmm(e.peak)}, Lune à ${Math.round(e.altPeak)}°`, `Maximum ${hhmm(e.peak)}, Moon at ${Math.round(e.altPeak)}°`), ["-P1D", "-PT1H"]);
+  for (const e of R.solar) add(`soleil-${e.peak}`, e.beg, e.end, L(`Éclipse de Soleil ${SOLAR_KIND(e.kind)} (${pc(e.obsc * 100)})`, `${SOLAR_KIND(e.kind)} solar eclipse (${pc(e.obsc * 100)})`), L("Filtre solaire obligatoire.", "Solar filter required."), ["-P1D", "-PT1H"]);
+  for (const x of R.sat.transits) add(`transit-${x.sat.key}-${Math.round(x.t)}`, x.t - 60e3, x.t + 60e3, transitText(x), L(`Hauteur ${Math.round(x.el)}° ${dirOf(x.az)}. À confirmer la veille sur transit-finder.com.`, `Altitude ${Math.round(x.el)}° ${dirOf(x.az)}. Confirm the day before on transit-finder.com.`), ["-PT2H", "-PT15M"]);
+  for (const p of R.sat.passes.filter(p => p.visMaxEl >= 30)) add(`passage-${p.sat.key}-${Math.round(p.visBeg)}`, p.visBeg, p.visEnd, L(`Passage de ${p.sat.name} (${Math.round(p.visMaxEl)}°, mag ${fmt(p.mag, 1)})`, `${p.sat.name} pass (${Math.round(p.visMaxEl)}°, mag ${fmt(p.mag, 1)})`), L(`De ${dirOf(p.visBegAz)} vers ${dirOf(p.visEndAz)}`, `From ${dirOf(p.visBegAz)} to ${dirOf(p.visEndAz)}`), ["-PT10M"]);
+  for (const e of R.planets.concat(R.moon)) add(`ev-${e.kind}-${e.key || ""}-${Math.round(e.t)}`, e.t, e.t + 3600e3, e.text, "", ["-PT2H"]);
+  for (const e of R.showers) add(`meteores-${Math.round(e.t)}`, e.t, e.t + 3600e3, e.text, "", ["-PT6H"]);
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AstroPlan//FR", "CALSCALE:GREGORIAN", `X-WR-CALNAME:AstroPlan`, ...ev.flat(), "END:VCALENDAR"].map(fold).join("\r\n") + "\r\n";
+}
+function downloadIcs() {
+  ensureAlerts(R => { if (!R) return;
+    const url = URL.createObjectURL(new Blob([icsText(R)], { type: "text/calendar" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: "astroplan-alertes.ics" });
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); });
+}
 
 // ---- Journal
 function renderJournal() {
@@ -1240,7 +1965,7 @@ function renderGear() {
 }
 
 // ---------------------------------------------------------------- navigation
-const VIEWS = ["ce-soir", "carte", "cible", "nuits", "journal", "materiel"];
+const VIEWS = ["ce-soir", "carte", "cible", "nuits", "alertes", "journal", "materiel"];
 function currentView() { const h = location.hash.slice(1); return VIEWS.includes(h) ? h : "ce-soir"; }
 function show() {
   const v = currentView();
@@ -1252,10 +1977,13 @@ function show() {
   if (v === "nuits") renderNights();
   if (v === "carte") renderMap();
   if (v === "journal") renderJournal();
+  if (v === "alertes") renderAlerts();
   if (v === "materiel") renderGear();
 }
-function refreshAll() { S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); if (typeof MAP !== "undefined") MAP.t = null; renderNightbar(); renderTypeChips(); show(); }
-function openTarget(id) { current = CATALOG.find(o => o[0] === id) || current; try { sessionStorage.setItem("astroplan-target", current[0]); } catch (e) {}
+function refreshAll() { S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); if (typeof MAP !== "undefined") MAP.t = null; resolveSolar(); renderNightbar(); renderTypeChips(); show(); }
+// les objets du système solaire sont recalculés pour chaque soirée : la cible courante suit
+function resolveSolar() { makeSolar(NM); if (current && (current.solar || current.pending)) current = findAny(current.solar ? current.solar.key : current.pending) || (current.pending ? CATALOG.find(o => o[0] === "NGC 7380") : current); }
+function openTarget(id) { current = findAny(id) || current; try { sessionStorage.setItem("astroplan-target", oid(current)); } catch (e) {}
   if (location.hash !== "#cible") location.hash = "cible"; else show(); }
 
 // ---------------------------------------------------------------- événements
@@ -1273,13 +2001,14 @@ $("#typeChips").addEventListener("click", e => { const b = e.target.closest(".ch
 $("#rigChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; rigFilter = b.dataset.k; renderTypeChips(); renderTonight(); });
 const rowOpen = e => { const tr = e.target.closest("tr[data-id]"); if (tr && (e.type === "click" || e.key === "Enter")) openTarget(tr.dataset.id); };
 $("#tonightBody").addEventListener("click", rowOpen); $("#tonightBody").addEventListener("keydown", rowOpen);
-const nightOpen = e => { const tr = e.target.closest("tr[data-date]"); if (tr && (e.type === "click" || e.key === "Enter")) { $("#date").value = tr.dataset.date; S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); renderNightbar(); location.hash = "cible"; } };
+$("#solarBody").addEventListener("click", rowOpen); $("#solarBody").addEventListener("keydown", rowOpen);
+const nightOpen = e => { const tr = e.target.closest("tr[data-date]"); if (tr && (e.type === "click" || e.key === "Enter")) { $("#date").value = tr.dataset.date; S.minAlt = Number($("#minAlt").value); NM = nightModel(dateValue()); resolveSolar(); renderNightbar(); location.hash = "cible"; } };
 $("#nightsPane").addEventListener("click", nightOpen); $("#nightsPane").addEventListener("keydown", nightOpen);
 // recherche
 const q = $("#q"), sugg = $("#sugg");
 q.addEventListener("input", () => { const res = findObjects(q.value); sugg.hidden = !res.length;
-  sugg.innerHTML = res.map(o => `<button type="button" data-id="${esc(o[0])}"><strong>${esc(o[0])}</strong>${o[1] ? " · " + esc(o[1]) : ""} <span class="muted">${esc(label(o))}</span></button>`).join(""); });
-q.addEventListener("keydown", e => { if (e.key === "Enter") { const r = findObjects(q.value); if (r[0]) { sugg.hidden = true; q.value = ""; openTarget(r[0][0]); } } });
+  sugg.innerHTML = res.map(o => `<button type="button" data-id="${esc(oid(o))}"><strong>${esc(o[0])}</strong>${o[1] ? " · " + esc(o[1]) : ""} <span class="muted">${esc(label(o))}</span></button>`).join(""); });
+q.addEventListener("keydown", e => { if (e.key === "Enter") { const r = findObjects(q.value); if (r[0]) { sugg.hidden = true; q.value = ""; openTarget(oid(r[0])); } } });
 sugg.addEventListener("click", e => { const b = e.target.closest("button[data-id]"); if (!b) return; sugg.hidden = true; q.value = ""; openTarget(b.dataset.id); });
 document.addEventListener("click", e => { if (!e.target.closest(".search")) sugg.hidden = true; });
 // réglages
@@ -1291,20 +2020,23 @@ function onSetting() {
   S.bortle = Number($("#bortle").value); S.seeing = Number($("#seeing").value); S.dwarfEq = Number($("#dwarfEq").value);
   S.rigs = [...document.querySelectorAll("[data-rig]")].filter(c => c.checked).map(c => c.dataset.rig);
   saveSettings(); $("#siteLabel").textContent = S.siteName;
-  NM = nightModel(dateValue()); renderNightbar(); renderTypeChips();
+  NM = nightModel(dateValue()); resolveSolar(); renderNightbar(); renderTypeChips();
   loadWeather().then(() => { renderNightbar(); });
 }
 for (const id of ["lat", "lon", "siteName", "bortle", "seeing", "dwarfEq"]) $("#" + id).addEventListener("change", onSetting);
 $("#gearList").addEventListener("change", onSetting);
 $("#hzGrid").addEventListener("change", e => { const i = e.target.dataset.hz; if (i == null) return;
   const v = Math.max(0, Math.min(80, parseFloat(e.target.value) || 0)); S.horizon[Number(i)] = v; e.target.value = v;
-  saveSettings(); renderHorizon(); NM = nightModel(dateValue()); });
+  saveSettings(); renderHorizon(); NM = nightModel(dateValue()); resolveSolar(); });
 $("#journalFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) importJournalFile(f); e.target.value = ""; });
 const drop = $("#journalDrop");
 drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
 drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); const f = e.dataTransfer.files[0]; if (f) importJournalFile(f); });
 $("#journalPane").addEventListener("click", rowOpen); $("#journalPane").addEventListener("keydown", rowOpen);
+$("#alertsPane").addEventListener("click", e => { const a = e.target.closest("[data-open]"); if (a) { e.preventDefault(); openTarget(a.dataset.open); return; } rowOpen(e); });
+$("#alertsPane").addEventListener("keydown", rowOpen);
+$("#icsBtn").addEventListener("click", downloadIcs);
 
 // ---------------------------------------------------------------- application installable
 let installEvt = null;
@@ -1322,13 +2054,14 @@ const STATIC_EN = [
   ['label[for="date"]', "Evening of"], ['label[for="minAlt"]', "Min. altitude"],
   ["#redBtn", "Red mode"], ["#redBtn", "Red palette to keep your night vision", "title"],
   ['nav.tabs a[data-view="ce-soir"]', "Tonight"], ['nav.tabs a[data-view="carte"]', "Sky map"], ['nav.tabs a[data-view="cible"]', "Target"],
-  ['nav.tabs a[data-view="nuits"]', "Best nights"], ['nav.tabs a[data-view="journal"]', "Log"], ['nav.tabs a[data-view="materiel"]', "Gear & site"],
+  ['nav.tabs a[data-view="nuits"]', "Best nights"], ["#alertsTabLabel", "Alerts"], ["#alertsTitle", "Alerts and events"], ["#icsBtn", "Add to my calendar"], ["#icsBtn", "Calendar file with reminders, for your phone or computer", "title"], ['nav.tabs a[data-view="journal"]', "Log"], ['nav.tabs a[data-view="materiel"]', "Gear & site"],
   ["nav.tabs", "Views", "aria-label"],
-  ["#v-ce-soir h2", "Tonight's best targets"], ["#typeChips", "Object type", "aria-label"], ["#rigChips", "Rig", "aria-label"],
-  ["#v-ce-soir thead tr", "<th>Object</th><th>Type</th><th class=\"num\">Size</th><th>Usable window</th><th class=\"num\">Duration</th><th class=\"num\">Culminates</th><th>Moon</th><th>Cloud</th><th>Log</th><th>Best rig</th>", "html"],
+  ["#v-ce-soir h2:not(#solarTitle)", "Tonight's best deep-sky targets"], ["#solarTitle", "Solar system"],
+  ["#solarHead", "<th>Object</th><th class=\"num\">Mag.</th><th class=\"num\">Diameter</th><th class=\"num\">Usable window</th><th class=\"num\">Highest</th><th>Best rig</th>", "html"], ["#typeChips", "Object type", "aria-label"], ["#rigChips", "Rig", "aria-label"],
+  ["#tonightHead", "<th>Object</th><th>Type</th><th class=\"num\">Size</th><th>Usable window</th><th class=\"num\">Duration</th><th class=\"num\">Culminates</th><th>Moon</th><th>Cloud</th><th>Log</th><th>Best rig</th>", "html"],
   ["#v-carte h2", "Sky map"], ["#mapChips", "Objects shown", "aria-label"], ["#mapTime", "Map time", "aria-label"], ["#mapNow", "Now"],
   ["#skyMap", "Sky map: tap a target to open it", "aria-label"], ["#zoomIn", "Zoom in", "aria-label"], ["#zoomOut", "Zoom out", "aria-label"], ["#zoomReset", "Whole sky", "aria-label"],
-  [".legendmap", '<span><b style="color:var(--accent)">●</b> well-placed target (above the minimum altitude, full darkness)</span><span><b style="color:var(--muted)">●</b> visible but low or behind an obstacle</span><span>◯ galaxy · □ nebula · ✛ cluster</span><span>View looking up: north up, east left, zenith in the centre</span>', "html"],
+  [".legendmap", '<span><b style="color:var(--accent)">●</b> well-placed target (above the minimum altitude, full darkness)</span><span><b style="color:var(--muted)">●</b> visible but low or behind an obstacle</span><span>◯ galaxy · □ nebula · ✛ cluster · ● planet · ☄ comet (tail pointing away from the Sun)</span><span>View looking up: north up, east left, zenith in the centre</span>', "html"],
   ["#q", "M 31, NGC 7000, Heart, Sh2-129…", "placeholder"], ["#q", "Search for a target", "aria-label"],
   ['label[for="nightsSpan"]', "Period"], ['#nightsSpan', '<option value="14">14 nights</option><option value="30">30 nights</option><option value="60">60 nights</option>', "html"],
   ["#v-journal h2", "Target log"], ['label[for="journalFile"]', "Import an AstroCheck log…"],
@@ -1345,7 +2078,7 @@ const STATIC_EN = [
   ["#v-materiel p.note:nth-of-type(3)", "Untick the ones you are not taking: advice will only use the others."],
   ["#savedMsg", "Settings saved"],
   ["#installBtn", "Install the app"], ["#offline", "offline"],
-  ["footer", 'Positions computed for the date (precession); Moon and Sun to within a few arcminutes. Sub lengths and total times are orders of magnitude for your sky, to refine with experience. NGC/IC and Messier catalogue: <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> by Mattia Verga (CC BY-SA 4.0); Sharpless nebulae: approximate coordinates. Stars and constellations: <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a> by Olaf Frohn (BSD). Weather: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> forecasts (CC BY 4.0) when the page can reach them; otherwise <a id="wxLink" href="https://clearoutside.com/forecast/43.46/5.02" target="_blank" rel="noopener">Clear Outside for your site</a>.', "html"],
+  ["footer", 'Positions computed for the date (precession); Sun, Moon and planets to about an arcminute. Sub lengths and total times are orders of magnitude for your sky, to refine with experience. NGC/IC and Messier catalogue: <a href="https://github.com/mattiaverga/OpenNGC" target="_blank" rel="noopener">OpenNGC</a> by Mattia Verga (CC BY-SA 4.0); Sharpless nebulae: approximate coordinates. Stars and constellations: <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a> by Olaf Frohn (BSD). Sun, Moon, planets and eclipses: <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener">Astronomy Engine</a> by Don Cross (MIT); ISS and Tiangong: <a href="https://github.com/shashwatak/satellite-js" target="_blank" rel="noopener">satellite.js</a> (MIT) with <a href="https://celestrak.org" target="_blank" rel="noopener">CelesTrak</a> orbits; comets: <a href="https://minorplanetcenter.net" target="_blank" rel="noopener">Minor Planet Center</a>; sunspots and Kp index: NOAA SWPC or SILSO; Sun image: NASA SDO. Weather: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> forecasts (CC BY 4.0) when the page can reach them; otherwise <a id="wxLink" href="https://clearoutside.com/forecast/43.46/5.02" target="_blank" rel="noopener">Clear Outside for your site</a>.', "html"],
 ];
 function applyStaticLang() {
   $("#langBtn").textContent = EN ? "FR" : "EN";
@@ -1365,11 +2098,17 @@ loadLocal();
 if (!Array.isArray(S.horizon) || S.horizon.length !== 16) S.horizon = new Array(16).fill(0);
 loadJournalLocal();
 try { if (localStorage.getItem("astroplan-red")) { document.body.classList.add("red"); $("#redBtn").setAttribute("aria-pressed", "true"); } } catch (e) {}
-try { const t = sessionStorage.getItem("astroplan-target"); if (t) current = CATALOG.find(o => o[0] === t) || null; } catch (e) {}
-if (!current) current = CATALOG.find(o => o[0] === "NGC 7380");
+let savedTarget = null;
+try { savedTarget = sessionStorage.getItem("astroplan-target"); } catch (e) {}
+current = (savedTarget && CATALOG.find(o => o[0] === savedTarget)) || null;
+if (!current && !(savedTarget && (savedTarget in { sun: 1, moon: 1, mercury: 1, venus: 1, mars: 1, jupiter: 1, saturn: 1, uranus: 1, neptune: 1 } || savedTarget.startsWith("com:")))) current = CATALOG.find(o => o[0] === "NGC 7380");
+if (!current) current = { pending: savedTarget };
 refreshAll();
 // météo et journal du serveur, puis nouvel affichage
-Promise.all([loadWeather(), loadJournalServer(), loadAstrobin()]).then(() => { renderNightbar(); show(); });
+Promise.all([loadWeather(), loadJournalServer(), loadAstrobin(), loadSpace()]).then(() => { resolveSolar(); renderNightbar(); show();
+  // alertes calculées en tâche de fond pour la pastille de l'onglet
+  const idle = window.requestIdleCallback || (f => setTimeout(f, 3000));
+  idle(() => ensureAlerts(() => {}), { timeout: 8000 }); });
 setInterval(() => loadWeather().then(() => renderNightbar()), 30 * 60e3);
 // réglages partagés entre l'ordinateur et le téléphone
 (async () => {
