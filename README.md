@@ -48,6 +48,10 @@ cd /var/www/astroplan && sudo git pull
 
 On peut aussi simplement ouvrir `site/index.html` dans un navigateur, même sans connexion internet.
 
+### Sur le téléphone ou la tablette
+
+Ouvrez l'adresse du site dans Chrome, puis **Installer l'application** (bouton dans la page, ou menu ⋮ ▸ *Installer l'application*). AstroPlan s'ouvre alors en plein écran depuis son icône et **fonctionne hors ligne** une fois chargée une première fois avec du réseau. Elle se met à jour toute seule après un `git pull` sur le serveur. Le site doit être servi en HTTPS.
+
 ## Modifier le matériel ou le catalogue
 
 La page est assemblée à partir de `src/template.html` (interface, calculs, liste du matériel) et `src/catalog.json` (catalogue d'objets) :

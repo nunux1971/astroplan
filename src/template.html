@@ -146,12 +146,13 @@ footer { margin-top: 30px; font-size: 12.5px; color: var(--muted); max-width: 80
 
 <div class="wrap">
   <header class="top">
-    <div class="brand"><h1>AstroPlan</h1><small id="siteLabel">Saint-Mitre-les-Remparts</small></div>
+    <div class="brand"><h1>AstroPlan</h1><small id="siteLabel">Saint-Mitre-les-Remparts</small><span class="pill warn" id="offline" hidden>hors ligne</span></div>
     <div class="controls">
       <div class="field"><label for="date">Soirée du</label><input type="date" id="date"></div>
       <div class="field"><label for="minAlt">Hauteur mini</label>
         <select id="minAlt"><option value="20">20°</option><option value="25">25°</option><option value="30" selected>30°</option><option value="40">40°</option></select></div>
       <button class="btn" id="redBtn" type="button" aria-pressed="false" title="Palette rouge pour garder la vision nocturne">Mode rouge</button>
+      <button class="btn primary" id="installBtn" type="button" hidden>Installer l'application</button>
     </div>
   </header>
 
@@ -1057,6 +1058,16 @@ drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add(
 drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); const f = e.dataTransfer.files[0]; if (f) importJournalFile(f); });
 $("#journalPane").addEventListener("click", rowOpen); $("#journalPane").addEventListener("keydown", rowOpen);
+
+// ---------------------------------------------------------------- application installable
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; $("#installBtn").hidden = false; });
+$("#installBtn").addEventListener("click", async () => { if (!installEvt) return; installEvt.prompt();
+  try { await installEvt.userChoice; } catch (e) {} installEvt = null; $("#installBtn").hidden = true; });
+window.addEventListener("appinstalled", () => { $("#installBtn").hidden = true; });
+const netState = () => { $("#offline").hidden = navigator.onLine !== false; };
+window.addEventListener("online", () => { netState(); loadWeather(true).then(() => { renderNightbar(); show(); }); });
+window.addEventListener("offline", netState); netState();
 
 // ---------------------------------------------------------------- démarrage
 loadLocal();
