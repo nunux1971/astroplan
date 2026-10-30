@@ -776,9 +776,31 @@ function journalText(o, best) {
 }
 // ---- aperçu sur le ciel réel (hips2fits du CDS)
 const pvState = { rig: null, angle: 0, mode: "wide" };
-function hipsUrl(ra, dec, fov, w, h) {
+const HIPS_HOSTS = ["https://alasky.cds.unistra.fr", "https://alaskybis.cds.unistra.fr"];
+function hipsUrl(ra, dec, fov, w, h, host = 0) {
   const survey = fov > 8 ? "CDS/P/Mellinger/color" : "CDS/P/DSS2/color";
-  return `https://alasky.cds.unistra.fr/hips-image-services/hips2fits?hips=${encodeURIComponent(survey)}&width=${w}&height=${h}&fov=${fov.toFixed(4)}&projection=TAN&coordsys=icrs&ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&format=jpg`;
+  return `${HIPS_HOSTS[host]}/hips-image-services/hips2fits?hips=${encodeURIComponent(survey)}&width=${Math.round(w)}&height=${Math.round(h)}&fov=${fov.toFixed(4)}&projection=TAN&coordsys=icrs&ra=${ra.toFixed(5)}&dec=${dec.toFixed(5)}&format=jpg`;
+}
+// charge l'image du ciel : délai d'attente, puis miroir du CDS, puis message clair
+function loadSky(box, img, makeUrl) {
+  const msg = box.querySelector(".msg");
+  let host = 0, timer = null, t0 = Date.now(), tick = null;
+  const fail = () => {
+    clearTimeout(timer); clearInterval(tick);
+    if (host + 1 < HIPS_HOSTS.length) { host++; try_(); return; }
+    img.remove();
+    msg.innerHTML = `Image du ciel indisponible pour l'instant : le service du CDS de Strasbourg ne répond pas.<br><a href="${makeUrl(0)}" target="_blank" rel="noopener">Ouvrir l'image directement</a>`;
+  };
+  const try_ = () => {
+    t0 = Date.now();
+    msg.textContent = host ? "Le serveur principal tarde : essai sur le miroir du CDS…" : "Chargement de l'image du ciel…";
+    tick = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); if (s >= 4) msg.textContent = `${host ? "Miroir du CDS" : "Chargement de l'image du ciel"}… ${s} s`; }, 1000);
+    timer = setTimeout(fail, 25000);
+    img.onload = () => { clearTimeout(timer); clearInterval(tick); msg.remove(); };
+    img.onerror = fail;
+    img.src = makeUrl(host);
+  };
+  try_();
 }
 function drawPreview(o, rigs, onlyAngle) {
   const box = $("#skybox"); if (!box) return;
@@ -790,15 +812,12 @@ function drawPreview(o, rigs, onlyAngle) {
   if (pvState.mode === "sensor") {
     // l'image (nord en haut) couvre la diagonale du capteur ; on la fait tourner dans un cadre au format du capteur
     const H = W * fh / fw; box.style.height = H + "px";
-    const diag = Math.hypot(fw, fh), N = Math.min(1200, Math.round(Math.hypot(W, H) * 1.05));
-    const url = hipsUrl(ra, dec, diag * 1.05, N, N);
+    const diag = Math.hypot(fw, fh), N = Math.min(900, Math.round(Math.hypot(W, H) * 1.05));
     let img = box.querySelector("img");
     if (!onlyAngle || !img) {
       box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img alt="Ciel autour de ${esc(o[0])}" width="${N}" height="${N}"><span class="scale">${fmt(fw, 2)}° × ${fmt(fh, 2)}° · ${esc(a.r.short)}</span>`;
       img = box.querySelector("img");
-      img.onload = () => { const m = box.querySelector(".msg"); if (m) m.remove(); };
-      img.onerror = () => { box.querySelector(".msg").textContent = "Image du ciel indisponible : la page doit pouvoir joindre le CDS de Strasbourg (alasky.cds.unistra.fr)."; img.remove(); };
-      img.src = url;
+      loadSky(box, img, h => hipsUrl(ra, dec, diag * 1.05, N, N, h));
     }
     img.style.width = img.style.height = `${Math.hypot(W, H) * 1.05}px`;
     img.style.transform = `translate(-50%, -50%) rotate(${-th}deg)`;
@@ -808,12 +827,10 @@ function drawPreview(o, rigs, onlyAngle) {
     const span = Math.min(180, Math.max(fw, fh, maj) * 2.2), px = W / span;
     let img = box.querySelector("img.wide");
     if (!onlyAngle || !img) {
-      const Wq = Math.min(1200, Math.round(W * 1.5)), Hq = Math.round(Wq * 0.66);
+      const Wq = Math.min(900, Math.round(W * 1.2)), Hq = Math.round(Wq * 0.66);
       box.innerHTML = `<div class="msg">Chargement de l'image du ciel…</div><img class="wide" alt="Ciel autour de ${esc(o[0])}" style="width:${W}px;height:${H}px;transform:translate(-50%,-50%)"><svg viewBox="0 0 ${W} ${H}"><g id="pvRect"></g></svg><span class="scale">champ affiché ${fmt(span, 1)}° · rectangle : ${esc(a.r.short)}</span>`;
       img = box.querySelector("img");
-      img.onload = () => { const m = box.querySelector(".msg"); if (m) m.remove(); };
-      img.onerror = () => { box.querySelector(".msg").textContent = "Image du ciel indisponible : la page doit pouvoir joindre le CDS de Strasbourg (alasky.cds.unistra.fr)."; img.remove(); };
-      img.src = hipsUrl(ra, dec, span, Wq, Hq);
+      loadSky(box, img, h => hipsUrl(ra, dec, span, Wq, Hq, h));
     }
     const rw = fw * px, rh = fh * px;
     box.querySelector("#pvRect").innerHTML = `<g transform="translate(${W / 2} ${H / 2}) rotate(${th})">
