@@ -1,6 +1,6 @@
 // AstroPlan : fonctionnement hors ligne.
 // La page vient du réseau quand il répond (mises à jour immédiates), sinon du cache.
-const CACHE = "astroplan-5a907c4af0";
+const CACHE = "astroplan-5e9856ba86";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png",
   "icons/maskable-192.png", "icons/maskable-512.png", "icons/apple-touch-icon.png"];
 

@@ -785,7 +785,7 @@ function bestRigs(o, vis, nm) {
 // ---------------------------------------------------------------- journal des cibles (écrit par AstroCheck)
 let JOURNAL = [];
 const normName = s => String(s || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-  .replace(/^MESSIER/, "M").replace(/^SH\s*2\s*[- ]?\s*/, "SH2-").replace(/[\s_]+/g, "").replace(/^(NGC|IC|M)0+/, "$1");
+  .replace(/^MESSIER/, "M").replace(/^CALDWELL/, "C").replace(/^SH\s*2\s*[- ]?\s*/, "SH2-").replace(/[\s_]+/g, "").replace(/^(NGC|IC|M|C)0+/, "$1");
 const entryKey = e => [normName(e.object), e.night, e.camera, e.filter, e.exptime, e.gain].join("|");
 function loadJournalLocal() { try { const t = localStorage.getItem("astroplan-journal"); if (t) JOURNAL = JSON.parse(t) || []; } catch (e) {} }
 function mergeJournal(entries) {
@@ -812,8 +812,8 @@ async function loadAstrobin() {
 }
 function astrobinFor(o) {
   if (!ASTROBIN) return [];
-  const keys = new Set([o[0], o[1], o[9], o[11]].filter(Boolean).map(normName));
-  const ids = [o[0], o[1]].filter(Boolean).map(normName);
+  const keys = new Set([o[0], o[1], o[9], o[11], o[12]].filter(Boolean).map(normName));
+  const ids = [o[0], o[1], o[12]].filter(Boolean).map(normName);
   return ASTROBIN.images.filter(im => (im.subjects || []).some(sj => keys.has(normName(sj)))
     || ids.some(k => normName(im.title).includes(k) && !/\d/.test(normName(im.title).split(k)[1]?.[0] || "")));
 }
@@ -827,13 +827,13 @@ function astrobinCard(o) {
       <span>${esc(im.title)}</span><span class="muted">${im.date ? new Date(im.date + "T12:00").toLocaleDateString(LOCALE) : ""}</span></a>`).join("")}</div></div>`;
 }
 function journalFor(o) {
-  const keys = new Set([o[0], o[1], o[9], o[11]].filter(Boolean).map(normName));
+  const keys = new Set([o[0], o[1], o[9], o[11], o[12]].filter(Boolean).map(normName));
   const es = JOURNAL.filter(e => keys.has(normName(e.object)));
   if (!es.length) return null;
   return { entries: es, secs: es.reduce((s, e) => s + (Number(e.exp_kept) || 0), 0), nights: new Set(es.map(e => e.night)).size,
     last: es.map(e => e.night).sort().pop() };
 }
-function catalogObject(name) { const k = normName(name); return CATALOG.find(o => [o[0], o[1], o[9], o[11]].filter(Boolean).some(x => normName(x) === k)); }
+function catalogObject(name) { const k = normName(name); return CATALOG.find(o => [o[0], o[1], o[9], o[11], o[12]].filter(Boolean).some(x => normName(x) === k)); }
 function rigOfEntry(e) {   // retrouve l'instrument d'après la caméra et la focale
   const cam = String(e.camera || "").toUpperCase(), f = Number(e.focal) || 0;
   if (cam === "TELE") return "dtele"; if (cam === "WIDE") return "dwide";
@@ -856,6 +856,7 @@ const pc = x => EN ? `${Math.round(x)}%` : `${Math.round(x)} %`;
 function raStr(ra) { const h = ra / 15, H = Math.floor(h), m = (h - H) * 60, M = Math.floor(m), s = Math.round((m - M) * 60); return `${H}h ${String(M).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`; }
 function decStr(d) { const sg = d < 0 ? "−" : "+", a = Math.abs(d), D = Math.floor(a), m = Math.round((a - D) * 60); return `${sg}${D}° ${String(m).padStart(2, "0")}′`; }
 const moonWord = nm => { const p = Math.round(nm.moonIllum * 100); return p < 3 ? L("nouvelle Lune", "new Moon") : L(`${p} % ${nm.moonWaxing ? "croissante" : "décroissante"}`, `${p}% ${nm.moonWaxing ? "waxing" : "waning"}`); };
+const altNames = o => [o[1], o[12]].filter(Boolean).map(x => ` <span class="muted">· ${esc(x)}</span>`).join("");
 const objName = o => EN ? (o[11] || "") : (o[9] || "");
 const label = o => objName(o) && objName(o) !== o[0] ? objName(o) : (TYPES[o[2]] || "");
 
@@ -913,7 +914,7 @@ function renderTonight() {
   const top = rows.slice(0, 40);
   $("#tonightBody").innerHTML = top.map(({ o, vis, b, w, j }) => `
     <tr class="click" data-id="${esc(o[0])}" tabindex="0">
-      <td><div class="obj">${projectOf(o) ? '<span class="star" title="' + L("dans mes projets", "in my projects") + '">★</span> ' : ""}${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(label(o))}</small></div></td>
+      <td><div class="obj">${projectOf(o) ? '<span class="star" title="' + L("dans mes projets", "in my projects") + '">★</span> ' : ""}${esc(o[0])}${altNames(o)}<small>${esc(label(o))}</small></div></td>
       <td>${esc(TYPES[o[2]] || o[2])}</td>
       <td class="num">${size(o)}</td>
       <td class="num">${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)}</td>
@@ -1137,7 +1138,7 @@ function findObjects(q) {
   const k = n(q); if (!k) return [];
   const exact = [], part = [];
   for (const o of SOLAR.concat(CATALOG)) {
-    const keys = [o[0], o[1], o[9], o[11]].filter(Boolean).map(n);
+    const keys = [o[0], o[1], o[9], o[11], o[12]].filter(Boolean).map(n);
     if (keys.some(x => x === k)) exact.push(o); else if (keys.some(x => x.includes(k))) part.push(o);
   }
   return exact.concat(part).slice(0, 12);
@@ -1309,7 +1310,7 @@ function renderTarget() {
   if (!o) { pane.innerHTML = `<p class="note">${L("Cherchez une cible par son nom ou son numéro, ou choisissez-en une dans l'onglet « Ce soir ».", "Search for a target by name or number, or pick one in the “Tonight” tab.")}</p>`; return; }
   if (o.solar && o.solar.kind !== "comet") return renderSolarTarget(o);
   const nm = NM, vis = visibility(o, nm), rigs = o.solar ? bestRigsSolar(o, vis, nm) : bestRigs(o, vis, nm);
-  const head = `<div class="thead"><h2>${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}</h2>${projButton(o)}</div>
+  const head = `<div class="thead"><h2>${esc(o[0])}${altNames(o)}</h2>${projButton(o)}</div>
     <p class="muted" style="margin:2px 0 0">${o.solar ? esc(solarSub(o)) : esc(label(o)) + (objName(o) ? " · " + esc(TYPES[o[2]] || o[2]) : "") + " · " + size(o)}${o[7] != null ? " · magnitude " + fmt(o[7], 1) : ""}${o[10] ? L(" · coordonnées approchées", " · approximate coordinates") : ""}${o.solar ? L(` · se déplace de ${fmt(o.facts.rate, 1)}″/min`, ` · moves ${fmt(o.facts.rate, 1)}″/min`) : ""}</p>`;
   const visTxt = vis.usable > 0 ? `${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : L(`jamais au-dessus de ${S.minAlt}° en nuit noire`, `never above ${S.minAlt}° in darkness`);
   const best = rigs[0];
@@ -1528,7 +1529,7 @@ function mapPick(x, y) {
   const pop = $("#mapPop");
   if (!best) { pop.hidden = true; return; }
   const o = best.o, vis = visibility(o, o.solar && o.solar.kind === "sun" ? dayModel() : NM);
-  pop.innerHTML = `<div class="obj">${esc(o[0])}${o[1] ? ` <span class="muted">· ${esc(o[1])}</span>` : ""}<small>${esc(o.solar ? solarSub(o) : label(o))}</small></div>
+  pop.innerHTML = `<div class="obj">${esc(o[0])}${altNames(o)}<small>${esc(o.solar ? solarSub(o) : label(o))}</small></div>
     ${o.solar && o.solar.kind === "sun" ? `<div class="pill bad" style="margin-top:4px">${L("filtre solaire obligatoire", "solar filter required")}</div>` : ""}
     <div class="num" style="margin-top:4px">${L("hauteur", "altitude")} ${Math.round(best.alt)}° · azimut ${Math.round(best.az)}°</div>
     <div class="muted" style="font-size:13px">${vis.usable ? `${L("fenêtre", "window")} ${hhmm(vis.wStart)} – ${hhmm(vis.wEnd)} (${hm(vis.usable)})` : L("pas de fenêtre utile ce soir", "no usable window tonight")}</div>
@@ -2126,7 +2127,7 @@ $("#nightsPane").addEventListener("click", nightOpen); $("#nightsPane").addEvent
 // recherche
 const q = $("#q"), sugg = $("#sugg");
 q.addEventListener("input", () => { const res = findObjects(q.value); sugg.hidden = !res.length;
-  sugg.innerHTML = res.map(o => `<button type="button" data-id="${esc(oid(o))}"><strong>${esc(o[0])}</strong>${o[1] ? " · " + esc(o[1]) : ""} <span class="muted">${esc(label(o))}</span></button>`).join(""); });
+  sugg.innerHTML = res.map(o => `<button type="button" data-id="${esc(oid(o))}"><strong>${esc(o[0])}</strong>${[o[1], o[12]].filter(Boolean).map(x => " · " + esc(x)).join("")} <span class="muted">${esc(label(o))}</span></button>`).join(""); });
 q.addEventListener("keydown", e => { if (e.key === "Enter") { const r = findObjects(q.value); if (r[0]) { sugg.hidden = true; q.value = ""; openTarget(oid(r[0])); } } });
 sugg.addEventListener("click", e => { const b = e.target.closest("button[data-id]"); if (!b) return; sugg.hidden = true; q.value = ""; openTarget(b.dataset.id); });
 document.addEventListener("click", e => { if (!e.target.closest(".search")) sugg.hidden = true; });
