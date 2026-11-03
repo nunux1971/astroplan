@@ -150,3 +150,11 @@ Le catalogue NGC/IC et Messier provient d'[OpenNGC](https://github.com/mattiaver
 ## English
 
 AstroPlan is also available in English: the page follows the language of the phone or browser, and the **FR / EN** button in the header switches it by hand. It plans an astrophotography session for a chosen evening and site: tonight's best targets (deep sky, plus the Sun, Moon, planets and bright comets), an Alerts tab (eclipses, ISS and Tiangong passes and transits across the Sun or Moon, sunspots and aurora index, planetary events, meteor showers, with a calendar export), an interactive sky map, the best rig, filter, sub length and total time for each target, the best nights ahead (Moon and 16-day cloud forecast), a real-sky framing preview, a local horizon, and a progress log fed by [AstroCheck](https://github.com/nunux1971/astrocheck). It installs as an app on Android (Chrome ▸ *Install app*) and works offline once loaded.
+
+## Surveillance des serveurs
+
+`tools/surveillance.py` vérifie toutes les 10 minutes les sites (y compris celui de l'autre
+serveur), les certificats, les disques, les services et la dernière sauvegarde, et prévient
+par ntfy (mêmes réglages que les alertes) quand un problème apparaît, une fois par jour tant
+qu'il dure, puis quand il est réglé. Installation : `sudo bash tools/installer_surveillance.sh s1`
+(ou `s2`). Essai : `sudo surveillance.py --test` ; état sans notification : `--dry-run`.
