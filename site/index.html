@@ -4393,7 +4393,15 @@ $("#nightsSpan").addEventListener("change", renderNights);
 $("#redBtn").addEventListener("click", () => { const on = document.body.classList.toggle("red"); $("#redBtn").setAttribute("aria-pressed", on);
   if (currentView() === "carte") drawMap();
   try { localStorage.setItem("astroplan-red", on ? "1" : ""); } catch (e) {} });
-window.addEventListener("hashchange", show);
+// lien direct vers une cible depuis ericastro.fr : #cible=NGC%207380 (désignation, alias ou nom usuel)
+function deepLink() {
+  const h = location.hash.slice(1);
+  if (!h.startsWith("cible=")) return;
+  const o = catalogObject(decodeURIComponent(h.slice(6)));
+  if (o) { current = o; try { sessionStorage.setItem("astroplan-target", oid(o)); } catch (e) {} }
+  history.replaceState(null, "", "#cible");
+}
+window.addEventListener("hashchange", () => { deepLink(); show(); });
 $("#typeChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; typeFilter = b.dataset.k; renderTypeChips(); renderTonight(); });
 $("#rigChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; rigFilter = b.dataset.k; renderTypeChips(); renderTonight(); });
 const rowOpen = e => { const tr = e.target.closest("tr[data-id]"); if (tr && (e.type === "click" || e.key === "Enter")) openTarget(tr.dataset.id); };
@@ -4501,6 +4509,7 @@ try { savedTarget = sessionStorage.getItem("astroplan-target"); } catch (e) {}
 current = (savedTarget && CATALOG.find(o => o[0] === savedTarget)) || null;
 if (!current && !(savedTarget && (savedTarget in { sun: 1, moon: 1, mercury: 1, venus: 1, mars: 1, jupiter: 1, saturn: 1, uranus: 1, neptune: 1 } || savedTarget.startsWith("com:")))) current = CATALOG.find(o => o[0] === "NGC 7380");
 if (!current) current = { pending: savedTarget };
+deepLink();
 refreshAll();
 // météo et journal du serveur, puis nouvel affichage
 Promise.all([loadWeather(), loadJournalServer(), loadAstrobin(), loadSpace(), loadProjectsServer()]).then(() => { resolveSolar(); renderNightbar(); show();
