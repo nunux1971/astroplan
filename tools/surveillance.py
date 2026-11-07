@@ -76,7 +76,7 @@ def systemd(unite):
     if not shutil.which("systemctl"):
         return {"ActiveState": "inconnu", "Result": "pas de systemd"}
     out = subprocess.run(["systemctl", "show", unite, "-p", "ActiveState", "-p", "Result",
-                          "-p", "ExecMainExitTimestamp", "-p", "LoadState"],
+                          "-p", "ExecMainExitTimestamp", "-p", "ExecMainStartTimestamp", "-p", "LoadState"],
                          capture_output=True, text=True, timeout=20).stdout
     return dict(l.split("=", 1) for l in out.strip().splitlines() if "=" in l)
 
@@ -119,6 +119,14 @@ def problemes(conf):
         unite, max_h = (s["service"], s.get("max_heures", 30)) if isinstance(s, dict) else (s, 30)
         i = systemd(unite)
         t = date_systemd(i.get("ExecMainExitTimestamp", ""))
+        if i.get("ActiveState") in ("activating", "active", "reloading"):
+            # sauvegarde en cours : systemd a effacé la date de la précédente, ce n'est pas une panne ;
+            # on ne prévient que si elle dure anormalement (bloquée)
+            debut = date_systemd(i.get("ExecMainStartTimestamp", ""))
+            if debut and time.time() - debut > conf.get("sauvegarde_max_duree_h", 8) * 3600:
+                p["sauve:" + unite] = (f"sauvegarde {unite} en cours depuis {(time.time() - debut) / 3600:.0f} h "
+                                       f"(bloquée ?) : journalctl -u {unite}")
+            continue
         if i.get("Result") not in (None, "success"):
             p["sauve:" + unite] = f"sauvegarde {unite} en échec ({i.get('Result')}) : journalctl -u {unite}"
         elif t is None or time.time() - t > max_h * 3600:
